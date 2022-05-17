@@ -15,6 +15,10 @@ public:
 	bool in_openlist = false;
 	bool wait_at_goal; // the action is to wait at the goal vertex or not. This is used for >length constraints
 	// the following is used to compare nodes in the OPEN list
+
+	//direction
+	int cur_direction = 0;
+
 	struct compare_node
 	{
 		// returns true if n1 > n2 (note -- this gives us *min*-heap).
@@ -50,8 +54,8 @@ public:
 
 	LLNode() : location(0), g_val(0), h_val(0), parent(nullptr), timestep(0), num_of_conflicts(0), in_openlist(false), wait_at_goal(false) {}
 
-	LLNode(int location, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
-		location(location), g_val(g_val), h_val(h_val), parent(parent), timestep(timestep),
+	LLNode(int location, int cur_direction, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
+		location(location), cur_direction(cur_direction), g_val(g_val), h_val(h_val), parent(parent), timestep(timestep),
 		num_of_conflicts(num_of_conflicts), in_openlist(in_openlist), wait_at_goal(false) {}
 
 	inline double getFVal() const { return g_val + h_val; }
@@ -79,6 +83,10 @@ public:
 
 	int start_location;
 	int goal_location;
+	//direction
+	int start_direction;
+	int goal_direction;
+
 	vector<int> my_heuristic;  // this is the precomputed heuristic for this agent
 	int compute_heuristic(int from, int to) const  // compute admissible heuristic between two locations
 	{
@@ -100,7 +108,9 @@ public:
 	SingleAgentSolver(const Instance& instance, int agent) :
 		instance(instance), //agent(agent), 
 		start_location(instance.start_locations[agent]),
-		goal_location(instance.goal_locations[agent])
+		goal_location(instance.goal_locations[agent]),
+		start_direction(instance.start_directions[agent]),
+		goal_direction(instance.goal_directions[agent])
 	{
 		compute_heuristics();
 	}

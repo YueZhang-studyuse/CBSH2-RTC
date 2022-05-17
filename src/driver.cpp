@@ -133,15 +133,16 @@ int main(int argc, char** argv)
 	//////////////////////////////////////////////////////////////////////
 	/// initialize the solver
     //////////////////////////////////////////////////////////////////////
-	CBS cbs(instance, vm["sipp"].as<bool>(), vm["screen"].as<int>());
-	cbs.setPrioritizeConflicts(vm["prioritizingConflicts"].as<bool>());
-	cbs.setDisjointSplitting(vm["disjointSplitting"].as<bool>());
-	cbs.setBypass(vm["bypass"].as<bool>());
-	cbs.setRectangleReasoning(r);
-	cbs.setCorridorReasoning(c);
-	cbs.setHeuristicType(h);
-	cbs.setTargetReasoning(vm["targetReasoning"].as<bool>());
-	cbs.setMutexReasoning(vm["mutexReasoning"].as<bool>());
+	//disable heuristics
+	CBS cbs(instance, false, vm["screen"].as<int>()); //no sipp
+	cbs.setPrioritizeConflicts(false); //no prioritized conflicts
+	cbs.setDisjointSplitting(false); //no disjoint splitting
+	cbs.setBypass(false); //no bypass
+	cbs.setRectangleReasoning(rectangle_strategy::NR); //no rectangle reasoning
+	cbs.setCorridorReasoning(corridor_strategy::NC); //no corridor reasoning
+	cbs.setHeuristicType(heuristics_type::ZERO); //no heuristics
+	cbs.setTargetReasoning(false); //no target reasonging
+	cbs.setMutexReasoning(false); //no mutex reasoning
 	cbs.setSavingStats(vm["stats"].as<bool>());
 	cbs.setNodeLimit(vm["nodeLimit"].as<int>());
 

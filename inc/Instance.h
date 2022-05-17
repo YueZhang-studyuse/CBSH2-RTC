@@ -43,6 +43,7 @@ public:
 		int loc1_y = getColCoordinate(loc1);
 		int loc2_x = getRowCoordinate(loc2);
 		int loc2_y = getColCoordinate(loc2);
+		//std::cout<<abs(loc1_x - loc2_x) + abs(loc1_y - loc2_y)<<std::endl;
 		return abs(loc1_x - loc2_x) + abs(loc1_y - loc2_y);
 	}
 
@@ -101,6 +102,8 @@ public:
 
 	int getDefaultNumberOfAgents() const { return num_of_agents; }
 
+	int calculateMoves(int move, int direction) const;
+
 private:
 	  // int moves_offset[MOVE_COUNT];
 	  vector<bool> my_map;
@@ -110,6 +113,12 @@ private:
 	  int num_of_agents = 0;
 	  vector<int> start_locations;
 	  vector<int> goal_locations;
+	  //add directions
+	  vector<int> start_directions;
+	  vector<int> goal_directions;
+
+	//   int* movs_offset;
+	//   int* move_forward_offset;
 
 	bool loadMap();
 	void printMap() const;
@@ -118,10 +127,10 @@ private:
 	bool loadAgents();
 	void saveAgents() const;
 
-	  void generateConnectedRandomGrid(int rows, int cols, int obstacles); // initialize new [rows x cols] map with random obstacles
-	  void generateRandomAgents(int warehouse_width);
-	  bool addObstacle(int obstacle); // add this obsatcle only if the map is still connected
-	  bool isConnected(int start, int goal) const; // run BFS to find a path between start and goal, return true if a path exists.
+	void generateConnectedRandomGrid(int rows, int cols, int obstacles); // initialize new [rows x cols] map with random obstacles
+	void generateRandomAgents(int warehouse_width);
+	bool addObstacle(int obstacle); // add this obsatcle only if the map is still connected
+	bool isConnected(int start, int goal) const; // run BFS to find a path between start and goal, return true if a path exists.
 
 	int randomWalk(int loc, int steps) const;
 

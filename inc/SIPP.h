@@ -18,7 +18,7 @@ public:
 
 	SIPPNode(int loc, int g_val, int h_val, SIPPNode* parent, int timestep, const Interval& interval,
 			int num_of_conflicts = 0, bool in_openlist = false) :
-			LLNode(loc, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist), interval(interval) {}
+			LLNode(loc,0, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist), interval(interval) {}
 
 	SIPPNode(const SIPPNode& other)
 	{
