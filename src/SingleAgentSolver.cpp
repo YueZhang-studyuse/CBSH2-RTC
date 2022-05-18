@@ -38,8 +38,6 @@ void SingleAgentSolver::compute_heuristics()
 	Node root(goal_location,goal_direction, 0);
 	my_heuristic[goal_location*4+goal_direction] = 0;
 	heap.push(root);  // add root to heap
-	int i = 0;
-	int j = 0;
 
 	//int current_direction = goal_direction;
 	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
@@ -56,12 +54,12 @@ void SingleAgentSolver::compute_heuristics()
 			int previous_direction = curr.direction;
 			if(move == 3)
 			{
-				previous_direction = previous_direction - 1;
+				previous_direction = curr.direction - 1;
 				if (previous_direction == -1){
 					previous_direction = 3;
 				}
 			}else if(move == 2){
-				previous_direction = (previous_direction+ 1)%4;
+				previous_direction = (curr.direction+ 1)%4;
 			}
 
 			//reverse the move calculateion
@@ -70,10 +68,8 @@ void SingleAgentSolver::compute_heuristics()
 				previous_loc = curr.location - moves_forward_offset[curr.direction];
 			if (instance.validMove(curr.location, previous_loc))
 			{
-				i++;
 				if (my_heuristic[previous_loc*4 + previous_direction] > curr.value + 1)
 				{
-					j++;
 					my_heuristic[previous_loc*4 + previous_direction] = curr.value + 1;
 					Node next(previous_loc, previous_direction, curr.value + 1);
 					heap.push(next);
@@ -85,6 +81,4 @@ void SingleAgentSolver::compute_heuristics()
 	// {
 	// 	std::cout<<my_heuristic[i]<<" ";
 	// }
-	// std::cout<<"total "<<my_heuristic.size()<<std::endl;
-	// std::cout<<"i "<<i<<" j "<<j<<std::endl;
 }
