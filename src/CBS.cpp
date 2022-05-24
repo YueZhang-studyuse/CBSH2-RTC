@@ -1121,7 +1121,6 @@ bool CBS::generateRoot()
 	mdd_helper.init(num_of_agents);
 	heuristic_helper.init();
 
-	std::cout<<"init start";
 
 	// initialize paths_found_initially
 	if (paths_found_initially.empty())
@@ -1146,7 +1145,6 @@ bool CBS::generateRoot()
 		{
 			//CAT cat(dummy_start->makespan + 1);  // initialized to false
 			//updateReservationTable(cat, i, *dummy_start);
-			std::cout<<"find path for "<<i<<" ";
 			paths_found_initially[i] = search_engines[i]->findPath(*dummy_start, initial_constraints[i], paths, i, 0);
 			if (paths_found_initially[i].empty())
 			{
