@@ -703,7 +703,7 @@ bool CBSHeuristic::SyncMDDs(const MDD &mdd, const MDD& other) // assume mdd.leve
 		for (; i < copy.levels.size(); i++)
 		{
 			SyncMDDNode* parent = copy.levels[i - 1].front();
-			auto node = new SyncMDDNode(parent->location, parent);
+			auto node = new SyncMDDNode(parent->location, parent->direction, parent);
 			parent->children.push_back(node);
 			copy.levels[i].push_back(node);
 

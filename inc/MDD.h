@@ -6,9 +6,11 @@
 class MDDNode
 {
 public:
-	MDDNode(int currloc, MDDNode* parent)
+	MDDNode(int currloc, int currdirec, MDDNode* parent)
 	{
 		location = currloc; 
+		//add direction here
+		direction = currdirec;
 		if (parent == nullptr)
 			level = 0;
 		else
@@ -17,13 +19,31 @@ public:
 			parents.push_back(parent);
 		}
 	}
+
+	MDDNode(int currloc, MDDNode* parent)
+	{
+		location = currloc; 
+		//add direction here
+		direction = -1;
+		if (parent == nullptr)
+			level = 0;
+		else
+		{
+			level = parent->level + 1;
+			parents.push_back(parent);
+		}
+	}
+
 	int location;
 	int level;
 	int cost=0; // minimum cost of path traversing this MDD node
 
+	//add directions
+	int direction;
+
 	bool operator==(const MDDNode& node) const
 	{
-		return (this->location == node.location) && (this->level == node.level);
+		return (this->location == node.location) && (this->level == node.level) && (this->direction == node.direction);
 	}
 
 
@@ -37,14 +57,14 @@ private:
 	const SingleAgentSolver* solver;
 
 public:
-	vector<list<MDDNode*>> levels;
+	vector<list<MDDNode*>> levels; //levels is the mdd tree
 
 	bool buildMDD(const ConstraintTable& ct,
 				  int num_of_levels, const SingleAgentSolver* solver);
 	// bool buildMDD(const std::vector <std::list< std::pair<int, int> > >& constraints, int numOfLevels,
 	// 	int start_location, const int* moves_offset, const std::vector<int>& my_heuristic, int map_size, int num_col);
 	void printNodes() const;
-	MDDNode* find(int location, int level) const;
+	MDDNode* find(int location, int direction, int level) const;
 	void deleteNode(MDDNode* node);
 	void clear();
 	// bool isConstrained(int curr_id, int next_id, int next_timestep, const std::vector< std::list< std::pair<int, int> > >& cons) const;
@@ -62,9 +82,10 @@ std::ostream& operator<<(std::ostream& os, const MDD& mdd);
 class SyncMDDNode
 {
 public:
-	SyncMDDNode(int currloc, SyncMDDNode* parent)
+	SyncMDDNode(int currloc, int currdirec, SyncMDDNode* parent)
 	{
 		location = currloc;
+		direction = currdirec;
 		if (parent != nullptr)
 		{
 			//level = parent->level + 1;
@@ -73,11 +94,12 @@ public:
 		//parent = NULL;
 	}
 	int location;
+	int direction;
 	//int level;
 
 	bool operator==(const SyncMDDNode& node) const
 	{
-		return (this->location == node.location);
+		return (this->location == node.location) && (this->direction == node.direction);
 	}
 
 
@@ -93,7 +115,7 @@ class SyncMDD
 public:
 	vector<list<SyncMDDNode*>> levels;
 
-	SyncMDDNode* find(int location, int level) const;
+	SyncMDDNode* find(int location, int direction, int level) const;
 	void deleteNode(SyncMDDNode* node, int level);
 	void clear();
 

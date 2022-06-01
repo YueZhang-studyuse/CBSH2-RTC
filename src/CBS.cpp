@@ -176,6 +176,7 @@ shared_ptr<Conflict> CBS::chooseConflict(const CBSNode& node) const
 		choose = node.conflicts.back();
 		for (const auto& conflict : node.conflicts)
 		{
+			//check proirity
 			if (*choose < *conflict)
 				choose = conflict;
 		}
@@ -392,6 +393,7 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 		node->g_val = node->g_val - (int) paths[ag]->size() + (int) new_path.size();
 		paths[ag] = &node->paths.back().second;
 		node->makespan = max(node->makespan, new_path.size() - 1);
+		printPaths();
 		return true;
 	}
 	else
@@ -531,7 +533,7 @@ void CBS::printPaths() const
 		cout << "Agent " << i << " (" << paths_found_initially[i].size() - 1 << " -->" <<
 			 paths[i]->size() - 1 << "): ";
 		for (const auto& t : *paths[i])
-			cout << t.location << "->";
+			cout << "location "<< t.location<<" direction "<<t.direction << "->";
 		cout << endl;
 	}
 }
@@ -628,7 +630,6 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 		  runtime_preprocessing << "," << getSolverName() << "," << instanceName << endl;
 	stats.close();
 }
-
 void CBS::saveStats(const string &fileName, const string &instanceName) const
 {
 	ofstream stats(fileName + ".txt", std::ios::app);

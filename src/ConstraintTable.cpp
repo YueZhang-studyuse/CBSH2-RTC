@@ -118,6 +118,11 @@ void ConstraintTable::build(const CBSNode& node, int agent)
 		int a, x, y, t;
 		constraint_type type;
 		tie(a, x, y, t, type) = curr->constraints.front();
+
+		//test
+		//std::cout<<"constraint size "<<curr->constraints.size()<<std::endl;
+		//test
+		//std::cout<<"current constraint "<<a<<" "<<x<<" "<<y<<" "<<t<<" "<<type<<std::endl;
 		switch (type)
 		{
 		case constraint_type::LEQLENGTH:

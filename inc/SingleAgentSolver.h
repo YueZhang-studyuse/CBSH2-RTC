@@ -27,7 +27,24 @@ public:
 			if (n1->g_val + n1->h_val == n2->g_val + n2->h_val)
 			{
 				if (n1->h_val == n2->h_val)
+				{
+					//tie breaking for avoding turning and turn back (when parent and current are in the same location, wait wins)
+					// if(n1->parent != nullptr && n2->parent != nullptr)
+					// {
+					// 	if(n1->location == n1->parent->location && n2->location == n2->location)
+					// 	{
+					// 		if(n1->cur_direction != n1->parent->cur_direction && n2->cur_direction == n2->parent->cur_direction)
+					// 		{
+					// 			return true;
+					// 		}
+					// 		else if(n2->cur_direction != n2->parent->cur_direction && n1->cur_direction == n1->parent->cur_direction)
+					// 		{
+					// 			return false;
+					// 		}
+					// 	}
+					// }
 					return rand() % 2;
+				}
 				return n1->h_val >= n2->h_val;
 			}
 			return n1->g_val + n1->h_val >= n2->g_val + n2->h_val;
@@ -43,6 +60,21 @@ public:
 			{
 				if (n1->g_val == n2->g_val)
 				{
+					// if(n1->parent != nullptr && n2->parent != nullptr)
+					// {
+					// 	//tie breaking for avoding turning and turn back (when parent and current are in the same location, wait wins)
+					// 	if(n1->location == n1->parent->location && n2->location == n2->location)
+					// 	{
+					// 		if(n1->cur_direction != n1->parent->cur_direction && n2->cur_direction == n2->parent->cur_direction)
+					// 		{
+					// 			return true;
+					// 		}
+					// 		else if(n2->cur_direction != n2->parent->cur_direction && n1->cur_direction == n1->parent->cur_direction)
+					// 		{
+					// 			return false;
+					// 		}
+					// 	}
+					// }
 					return rand() % 2 == 0;
 				}
 				return n1->g_val <= n2->g_val;  // break ties towards larger g_vals
@@ -113,6 +145,15 @@ public:
 		goal_direction(instance.goal_directions[agent])
 	{
 		compute_heuristics();
+	}
+
+	//temp method to getting columns
+	int getInstanceCols() const{
+		int cols = instance.getCols();
+		return cols;
+	}
+	bool validMove(int location1, int location2) const{
+		return instance.validMove(location1,location2);
 	}
 
 	virtual ~SingleAgentSolver() {}

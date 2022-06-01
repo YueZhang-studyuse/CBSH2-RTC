@@ -45,6 +45,7 @@ Path SpaceTimeAStar::findPath(const CBSNode& node, const ConstraintTable& initia
 
 	if (constraint_table.getNumOfLandmarks() > 0)
 	{
+		//for positive constraints
 		// find the new constrained time range, so that, later, we only need to replan the path segment that covers this time range
 		int t_min = MAX_TIMESTEP, t_max = 0;
 		for (const auto constraint : node.constraints)
@@ -289,6 +290,8 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 	lower_bound = max(holding_time - start_state.second, max(min_f_val, lowerbound));
 
 	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
+	//test
+	//std::cout<<"start: "<<start_location<<std::endl;
 
 
 	while (!open_list.empty())
@@ -297,6 +300,8 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 		updateFocalList(); // update FOCAL if min f-val increased
 		auto* curr = popNode();
 		//std::cout<<"2 ";
+		//test
+		//std::cout<<"Expanding... "<<curr->location<<" direction "<<curr->cur_direction<<" timestep "<<curr->timestep<<" wait at goal? "<<curr->wait_at_goal<<std::endl;
 
 		// check if the popped node is a goal
 		if (curr->location == goal_location && // arrive at the goal location
@@ -304,6 +309,8 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			!curr->wait_at_goal && // not wait at the goal location
 			curr->timestep >= holding_time) // the agent can hold the goal location afterward
 		{
+			//test
+			//std::cout<<"Find goal"<<std::endl;
 			updatePath(curr, path);
 			break;
 		}
@@ -320,6 +327,61 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			if (i == 1)
 			{
 				next_location = curr->location + moves_forward_offset[curr->cur_direction];
+			}
+			else if (i != 0)//check useless moves here
+			{
+				int turnleft = 0;
+				int turnright = 0;
+				LLNode* temp = curr;
+				bool prune = false;
+				while(temp->parent != nullptr)
+				{
+					if(temp->parent->location != temp->location)
+					{
+						break;
+					}
+					int direction1 = temp->cur_direction;
+					int direction2 = temp->parent->cur_direction;
+					if (direction1 == direction2)
+					{
+						temp = temp->parent;
+						continue;
+					}
+					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
+					{
+						if (i == 2)
+						{
+							prune = true;
+							break;
+						}
+						else //before is turn left
+						{
+							turnright++;
+						}
+					}
+					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
+					{
+						if (i == 3)
+						{
+							prune = true;
+							break;
+						}
+						else
+						{
+							turnleft++;
+						}
+					}
+					if((turnleft >= 2 && i == 2) || (turnright>=2 && i ==3))
+					{
+						prune = true;
+						break;
+					}
+					temp = temp->parent;
+				}
+				if(prune)
+				{
+					continue;
+				}
 			}
 			
 			 //+ instance.calculateMoves(i,curr->cur_direction);
@@ -348,8 +410,13 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 				next_direction = (current_direction + 1)%4;
 			}
 
+			//test
+			//std::cout<<"Generating... "<<next_location<<" direction "<<next_direction<<" timestep "<<next_timestep<<std::endl;
+
 			if (max((int) constraint_table.cat_size, constraint_table.latest_timestep) + 1 < curr->timestep)
 			{ // now everything is static, so switch to space A* where we always use the same timestep
+				//test
+				//std::cout<<"test for cat"<<std::endl;
 				if (next_location == curr->location && next_direction ==curr->cur_direction)
 				{
 					continue;
@@ -360,6 +427,13 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			if (constraint_table.constrained(next_location, next_timestep) ||
 				constraint_table.constrained(curr->location, next_location, next_timestep))
 				continue;
+			//test for target conflict
+			if (next_timestep == holding_time -1 && next_location == goal_location)
+			{
+				continue;
+			}
+			//test
+			//std::cout<<"not constrained: "<<next_location<<"time step"<<next_timestep<<std::endl;
 			
 			// compute cost to next_id via curr node
 			int next_g_val = curr->g_val + 1;
@@ -373,7 +447,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			// generate (maybe temporary) node
 			auto next = new AStarNode(next_location,next_direction, next_g_val, next_h_val,
 									  curr, next_timestep, next_internal_conflicts, false);
-			if (next_location == goal_location && curr->location == goal_location && next_direction == goal_direction && curr->cur_direction ==goal_direction)
+			if (next_location == goal_location && curr->location == goal_location && next_direction ==goal_direction && curr->cur_direction == goal_direction)
 				next->wait_at_goal = true;
 			keep = constraint_table.updateUnsatisfiedPositiveConstraintSet(curr->unsatisfied_positive_constraint_sets, next->unsatisfied_positive_constraint_sets, next_location, next_timestep);
 			if (!keep)
