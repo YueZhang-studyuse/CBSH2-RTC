@@ -23,28 +23,145 @@ shared_ptr<Conflict> RectangleReasoning::run(const vector<Path*>& paths, int tim
 	case rectangle_strategy::DR:
 		rectangle = findGenerealizedRectangleConflict(paths, timestep, a1, a2, mdd1, mdd2);
 		break;
+    // case rectangle_strategy::RCR:
+    //     rectangle = findCardinalRectangleConflict(paths, timestep, a1, a2);
+    //     break;
 	}
 	accumulated_runtime += (double)(clock() - t) / CLOCKS_PER_SEC;
 	return rectangle;
 }
 
-// for R
+// my rotation try for CR
+// shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path*>& paths, int timestep, int a1, int a2)
+// {
+//     std::cout<<"test3";
+//     auto s1 = instance.getCoordinate(paths[a1]->front().location);
+//     auto g1 = instance.getCoordinate(paths[a1]->back().location);
+//     auto s2 = instance.getCoordinate(paths[a2]->front().location);
+//     auto g2 = instance.getCoordinate(paths[a2]->back().location);
+
+//     auto ds1 = paths[a1]->front().direction;
+//     auto dg1 = paths[a1]->back().direction;
+//     auto ds2 = paths[a2]->front().direction;
+//     auto dg2 = paths[a2]->back().direction;
+//     std::cout<<"test2";
+//     // //it seems should consider directions when thinking of rectangle conflict
+//     if (!isRectangleConflict(s1, s2, g1, g2, ds1,dg1,ds2,dg2, (int)paths[a1]->size() - 1, (int)paths[a2]->size() - 1))
+//         return nullptr;
+//     auto Rs = getRs(s1, s2, g1);
+//     auto Rg = getRg(s1, g1, g2);
+//     //test
+//     std::cout<<"test";
+//     //check each distance inside the rectangle
+//     //the original checking (with more things to be done)
+//     int startx,starty,endx,endy;
+//     if (Rs.first < Rg.first)
+//     {
+//         startx = Rs.first;
+//         endx = Rg.first;
+//     }else{
+//         startx = Rg.first;
+//         endx = Rs.first;
+//     }
+//     if (Rs.second < Rg.second)
+//     {
+//         starty = Rs.second;
+//         endy = Rg.second;
+//     }else{
+//         starty = Rg.second;
+//         endy = Rs.second;
+//     }
+//     for (int i = startx; i <= endx; i++)
+//     {
+//         for (int j = starty; j <= endy; j++)
+//         {
+//             int d1 = getTurning(s1,make_pair(i, j),ds1,-1) + abs(s1.first - i) + abs(s1.second-j);
+//             int d2 = getTurning(s2,make_pair(i, j),ds2,-1) + abs(s2.first - i) + abs(s2.second-j);
+//             if (d1 != d2)
+//             {
+//                 return nullptr;
+//             }
+//         }
+//     }
+//     int type = classifyRectangleConflict(s1, s2, g1, g2);
+//     if (type != 2)
+//         return nullptr;
+//     //to do here
+//     int Rg_t = abs(Rg.first - s1.first) + abs(Rg.second - s1.second) + getTurning(s1,Rg,ds1,-1);
+//     list<Constraint> constraint1;
+//     list<Constraint> constraint2;
+//     addBarrierConstraints(a1, a2, Rs, Rg, s1, s2, Rg_t, constraint1, constraint2);
+//     auto rectangle = make_shared<Conflict>();
+//     rectangle->rectangleConflict(a1, a2, constraint1, constraint2);
+//     // int type = classifyRectangleConflict(s1, s2, g1, g2);
+//     // if (type == 2)
+//     //     rectangle->priority = conflict_priority::CARDINAL;
+//     // else if (type == 1)
+//     //     rectangle->priority = conflict_priority::SEMI;
+//     // else
+//     //     rectangle->priority = conflict_priority::NON;
+//     // return rectangle;
+// }
+
+// change for R to for CR+Rotation
 shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path*>& paths, int timestep, int a1, int a2)
 {
     auto s1 = instance.getCoordinate(paths[a1]->front().location);
     auto g1 = instance.getCoordinate(paths[a1]->back().location);
     auto s2 = instance.getCoordinate(paths[a2]->front().location);
     auto g2 = instance.getCoordinate(paths[a2]->back().location);
-    if (!isRectangleConflict(s1, s2, g1, g2, (int)paths[a1]->size() - 1, (int)paths[a2]->size() - 1))
+
+    auto ds1 = paths[a1]->front().direction;
+    auto dg1 = paths[a1]->back().direction;
+    auto ds2 = paths[a2]->front().direction;
+    auto dg2 = paths[a2]->back().direction;
+
+    // auto ds1 = instance.getCoordinate(paths[a1]->front().direction);
+    // auto dg1 = instance.getCoordinate(paths[a1]->back().direction);
+    // auto ds2 = instance.getCoordinate(paths[a2]->front().direction);
+    // auto dg2 = instance.getCoordinate(paths[a2]->back().direction);
+    // //it seems should consider directions when thinking of rectangle conflict
+    if (!isRectangleConflict(s1, s2, g1, g2, ds1,dg1,ds2,dg2, (int)paths[a1]->size() - 1, (int)paths[a2]->size() - 1))
         return nullptr;
     auto Rs = getRs(s1, s2, g1);
     auto Rg = getRg(s1, g1, g2);
-    int Rg_t = abs(Rg.first - s1.first) + abs(Rg.second - s1.second);
+
+    int startx,starty,endx,endy;
+    if (Rs.first < Rg.first)
+    {
+        startx = Rs.first;
+        endx = Rg.first;
+    }else{
+        startx = Rg.first;
+        endx = Rs.first;
+    }
+    if (Rs.second < Rg.second)
+    {
+        starty = Rs.second;
+        endy = Rg.second;
+    }else{
+        starty = Rg.second;
+        endy = Rs.second;
+    }
+    for (int i = startx; i <= endx; i++)
+    {
+        for (int j = starty; j <= endy; j++)
+        {
+            int d1 = getTurning(s1,make_pair(i, j),ds1,-1) + abs(s1.first - i) + abs(s1.second-j);
+            int d2 = getTurning(s2,make_pair(i, j),ds2,-1) + abs(s2.first - i) + abs(s2.second-j);
+            if (d1 != d2)
+            {
+                return nullptr;
+            }
+        }
+    }
+
+    int Rg_t = abs(Rg.first - s1.first) + abs(Rg.second - s1.second) + getTurning(s1,Rg,ds1,-1);
     list<Constraint> constraint1;
     list<Constraint> constraint2;
     addBarrierConstraints(a1, a2, Rs, Rg, s1, s2, Rg_t, constraint1, constraint2);
-    if (!blocked(*paths[a1], constraint1) || !blocked(*paths[a2], constraint2))
-        return nullptr;
+    // if (!blocked(*paths[a1], constraint1) || !blocked(*paths[a2], constraint2))
+    //     return nullptr;
     auto rectangle = make_shared<Conflict>();
     rectangle->rectangleConflict(a1, a2, constraint1, constraint2);
     int type = classifyRectangleConflict(s1, s2, g1, g2);
@@ -126,6 +243,7 @@ shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path
     return rectangle;
 }
 // for GR
+//pending change due to mdd add rotation
 shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const vector<Path*>& paths, int timestep,
                                                                            int a1, int a2, const MDD* mdd1, const MDD* mdd2)
 {
@@ -229,13 +347,87 @@ bool RectangleReasoning::blocked(const MDD& mdd, const list<Constraint>& constra
 	return true;
 }
 
+int RectangleReasoning::getTurning(const pair<int, int>& start, const pair<int, int>& goal, int sd, int gd)
+{
+    int d1 = -1;
+    int d2 = -1;
+    if (start.first < goal.first)
+    {
+        d1 = 2;
+    }
+    if (start.first > goal.first)
+    {
+        d1 = 0;
+    }
+    if (start.second < goal.second)
+    {
+        d2 = 1;
+    }
+    if (start.second > goal.second)
+    {
+        d2 = 3;
+    }
+    if(d1 != -1 && d2 != -1)
+    {
+        if (gd == -1)
+        {
+            return (min(abs(sd-d1), abs(sd-d2)) + 1);
+        }
+        return (min(abs(sd-d1) + abs(gd-d2), abs(sd-d2) + abs(gd-d1)) + 1);
+    }
+    else if (d1 == -1 && d2 == -1)
+    {
+        if (gd == -1)
+        {
+            return 0;
+        }
+        return abs(sd-gd);
+    }
+    else if (d1 == -1)
+    {
+        if (gd == -1)
+        {
+            return abs(sd-d2);
+        }
+        return (abs(sd-d2) + abs(gd-d2));
+    }
+    else
+    {
+        if (gd == -1)
+        {
+            return abs(sd-d1);
+        }
+        return (abs(sd-d1) + abs(gd-d1));
+    }
+}
+
+//Identify rectangle conflicts for CR+Rotation
+bool RectangleReasoning::isRectangleConflict(const pair<int, int>& s1, const pair<int, int>& s2,
+											 const pair<int, int>& g1, const pair<int, int>& g2, const int ds1, const int dg1, const int ds2, const int dg2, int g1_t, int g2_t)
+{
+    //add turning here
+    //need to figure out the time step to enter the rectangle
+    //test
+    // std::cout<<"1 "<<g1_t<<" "<<abs(s1.first - g1.first) + abs(s1.second - g1.second) + getTurning(s1,g1,ds1,dg1)<<std::endl;
+    // std::cout<<"2 "<<g2_t<<" "<<abs(s2.first - g2.first) + abs(s2.second - g2.second) + getTurning(s2,g2,ds2,dg2)<<std::endl;
+    int mg1 = abs(s1.first - g1.first) + abs(s1.second - g1.second) + getTurning(s1,g1,ds1,dg1);
+    int mg2 = abs(s2.first - g2.first) + abs(s2.second - g2.second) + getTurning(s2,g2,ds2,dg2);
+	return g1_t == mg1 &&  // Manhattan-optimal
+		   g2_t == mg2 && // Manhattan-optimal
+		   (s1.first - g1.first) * (s2.first - g2.first) >= 0 &&  //Move in the same direction
+		   (s1.second - g1.second) * (s2.second - g2.second) >= 0; //Move in the same direction
+}
 
 //Identify rectangle conflicts for CR/R
 bool RectangleReasoning::isRectangleConflict(const pair<int, int>& s1, const pair<int, int>& s2,
 											 const pair<int, int>& g1, const pair<int, int>& g2, int g1_t, int g2_t)
 {
-	return g1_t == abs(s1.first - g1.first) + abs(s1.second - g1.second) &&  // Manhattan-optimal
-		   g2_t == abs(s2.first - g2.first) + abs(s2.second - g2.second) && // Manhattan-optimal
+    int mg1 = abs(s1.first - g1.first) + abs(s1.second - g1.second) + getTurning(s1,g1,0,0);
+    int mg2 = abs(s2.first - g2.first) + abs(s2.second - g2.second) + getTurning(s2,g2,0,0);
+    return g1_t == g1_t &&  // Manhattan-optimal
+		   g2_t == g2_t && // Manhattan-optimal
+	// return g1_t == abs(s1.first - g1.first) + abs(s1.second - g1.second) &&  // Manhattan-optimal
+	// 	   g2_t == abs(s2.first - g2.first) + abs(s2.second - g2.second) && // Manhattan-optimal
 		   (s1.first - g1.first) * (s2.first - g2.first) >= 0 &&  //Move in the same direction
 		   (s1.second - g1.second) * (s2.second - g2.second) >= 0; //Move in the same direction
 }
