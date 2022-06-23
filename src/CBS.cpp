@@ -77,6 +77,24 @@ void CBS::findConflicts(CBSNode& curr, int a1, int a2)
 			}
 			assert(!conflict->constraint1.empty());
 			assert(!conflict->constraint2.empty());
+
+			//debug for target follow up conflict
+			if(curr.parent != nullptr)
+			{
+				if(curr.parent->conflict->type == conflict_type::TARGET || curr.parent->conflict->target_follow_up==true) //current choosen conflict is a target conflict or target follow up
+				{
+				int con_a1 = curr.parent->conflict->a1;
+				int con_a2 = curr.parent->conflict->a2;
+				if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+				{
+					if(curr.parent->conflict->type == conflict_type::TARGET)
+					{
+						conflict->target_failed = true; //direct follow up
+					}
+					conflict->target_follow_up = true;
+				}
+				}
+			}
 			curr.unknownConf.push_back(conflict);
 		}
 		else if (timestep < min_path_length - 1
@@ -87,6 +105,25 @@ void CBS::findConflicts(CBSNode& curr, int a1, int a2)
 			conflict->edgeConflict(a1, a2, loc1, loc2, (int)timestep + 1);
 			assert(!conflict->constraint1.empty());
 			assert(!conflict->constraint2.empty());
+
+			//debug for target follow up conflict
+			if(curr.parent != nullptr)
+			{
+				if(curr.parent->conflict->type == conflict_type::TARGET || curr.parent->conflict->target_follow_up==true) //current choosen conflict is a target conflict or target follow up
+				{
+				int con_a1 = curr.parent->conflict->a1;
+				int con_a2 = curr.parent->conflict->a2;
+				if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+				{
+					if(curr.parent->conflict->type == conflict_type::TARGET)
+					{
+						conflict->target_failed = true; //direct follow up
+					}
+					conflict->target_follow_up = true;
+				}
+				}
+			}
+
 			curr.unknownConf.push_back(conflict); // edge conflict
 		}
 	}
@@ -107,6 +144,25 @@ void CBS::findConflicts(CBSNode& curr, int a1, int a2)
 					conflict->vertexConflict(a1_, a2_, loc1, timestep);
 				assert(!conflict->constraint1.empty());
 				assert(!conflict->constraint2.empty());
+
+				//debug for target follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::TARGET || curr.parent->conflict->target_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::TARGET)
+						{
+							conflict->target_failed = true; //direct follow up
+						}
+						conflict->target_follow_up = true;
+					}
+					}
+				}
+
 				curr.unknownConf.push_front(conflict); // It's at least a semi conflict			
 			}
 		}
@@ -393,7 +449,8 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 		node->g_val = node->g_val - (int) paths[ag]->size() + (int) new_path.size();
 		paths[ag] = &node->paths.back().second;
 		node->makespan = max(node->makespan, new_path.size() - 1);
-		printPaths();
+		if (screen == 2)
+			printPaths();
 		return true;
 	}
 	else
@@ -601,7 +658,11 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 				 "runtime of rectangle conflicts,runtime of corridor conflicts,runtime of mutex conflicts," <<
 				 "runtime of building MDDs,runtime of building constraint tables,runtime of building CATs," <<
 				 "runtime of path finding,runtime of generating child nodes," <<
-				 "preprocessing runtime,solver name,instance name" << endl;
+				 "preprocessing runtime,solver name,instance name" <<
+				 //debug for target here
+				 ",target reasoning failed" <<
+				 ",target follow up conflicts" <<
+				  endl;
 		addHeads.close();
 	}
 	ofstream stats(fileName, std::ios::app);
@@ -627,7 +688,9 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 		  mdd_helper.accumulated_runtime << "," << runtime_build_CT << "," << runtime_build_CAT << "," <<
 		  runtime_path_finding << "," << runtime_generate_child << "," <<
 
-		  runtime_preprocessing << "," << getSolverName() << "," << instanceName << endl;
+		  runtime_preprocessing << "," << getSolverName() << "," << instanceName <<
+		  //debug for target
+		  ","<<target_failed<<"," <<target_follow_up<< endl;
 	stats.close();
 }
 void CBS::saveStats(const string &fileName, const string &instanceName) const
@@ -940,6 +1003,29 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 						constraint_type::POSITIVE_RANGE);
 				}
 			}
+			//experiment test here
+			// int previous_number_of_conflict = -1;
+			// if (curr->conflict->type == conflict_type::TARGET)
+			// {
+			// 	previous_number_of_conflict = 0;
+			// 	int a1 = curr->conflict->a1;
+			// 	int a2 = curr->conflict->a2;
+			// 	//count the conflict between these two agent
+			// 	size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
+			// 	for (size_t timestep = 0; timestep < min_path_length; timestep++)
+			// 	{
+			// 		int loc1 = paths[a1]->at(timestep).location;
+			// 		int loc2 = paths[a2]->at(timestep).location;
+			// 		if (loc1 == loc2)
+			// 		{
+			// 			previous_number_of_conflict++;
+			// 			if (timestep == min_path_length - 1)
+			// 			{
+			// 				previous_number_of_conflict--; //do not count target conflict
+			// 			}
+			// 		}
+			// 	}
+			// }
 
 			if (screen > 1)
 				cout << "	Expand " << *curr << endl <<
@@ -947,6 +1033,10 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 
 			bool solved[2] = { false, false };
 			vector<vector<PathEntry>*> copy(paths);
+
+			//test
+			// bool solved_by_one = false;
+			// int new_conflicts = 0;
 
 			for (int i = 0; i < 2; i++)
 			{
@@ -958,6 +1048,45 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 					delete child[i];
 					continue;
 				}
+			// 	//debug for target
+			// 	else if (previous_number_of_conflict != -1 && !solved_by_one)
+			// 	{
+			// 		int current_conflict = 0;
+			// 		int a1 = curr->conflict->a1;
+			// 		int a2 = curr->conflict->a2;
+			// 		size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
+			// 		for (size_t timestep = 0; timestep < min_path_length; timestep++)
+			// 		{
+			// 			int loc1 = paths[a1]->at(timestep).location;
+			// 			int loc2 = paths[a2]->at(timestep).location;
+			// 			if (loc1 == loc2)
+			// 			{
+			// 				current_conflict++;
+			// 			}
+			// 		}
+			// 		if(current_conflict > previous_number_of_conflict)
+			// 		{
+			// 			// if (current_conflict-previous_number_of_conflict >4)
+			// 			// {
+			// 			// 	printPaths();
+			// 			// 	return false;
+			// 			// }
+			// 			if(new_conflicts!=0)
+			// 			{
+			// 				if (current_conflict-previous_number_of_conflict < new_conflicts)
+			// 				{
+			// 					new_conflicts=current_conflict-previous_number_of_conflict;
+			// 				}
+			// 			}else
+			// 			{
+			// 				new_conflicts=current_conflict-previous_number_of_conflict;
+			// 			}
+			// 			//target_failed++;
+			// 		}else{
+			// 			solved_by_one = true;
+			// 		}
+			// 	}
+				//printPaths();
 				if (child[i]->g_val + child[i]->h_val == min_f_val && curr->unknownConf.size() + curr->conflicts.size() == 0) //no conflicts
 				{// found a solution (and finish the while look)
 					break;
@@ -998,6 +1127,11 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 					break;
 				}
 			}
+			//debug here
+			// if(new_conflicts > 0 &&!solved_by_one)
+			// {
+			// 	target_failed++;
+			// }
 			if (foundBypass)
 			{
 				for (auto & i : child)
@@ -1043,6 +1177,15 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				num_mutex_conflicts++;
 				break;
 			}
+			//debug here
+			if (curr->conflict->target_failed == true)
+			{
+				target_failed++;
+			}
+			if (curr->conflict->target_follow_up == true)
+			{
+				target_follow_up++;
+			}
 		}
 		curr->clear();
 	}  // end of while loop
@@ -1052,7 +1195,8 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 	if (solution_found && !validateSolution())
 	{
 		cout << "Solution invalid!!!" << endl;
-		printPaths();
+		if (screen == 2)
+			printPaths();
 		exit(-1);
 	}
 	if (screen == 2)

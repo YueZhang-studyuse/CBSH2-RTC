@@ -415,8 +415,6 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 
 			if (max((int) constraint_table.cat_size, constraint_table.latest_timestep) + 1 < curr->timestep)
 			{ // now everything is static, so switch to space A* where we always use the same timestep
-				//test
-				//std::cout<<"test for cat"<<std::endl;
 				if (next_location == curr->location && next_direction ==curr->cur_direction)
 				{
 					continue;
@@ -428,10 +426,10 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 				constraint_table.constrained(curr->location, next_location, next_timestep))
 				continue;
 			//test for target conflict
-			if (next_timestep == holding_time -1 && next_location == goal_location)
-			{
-				continue;
-			}
+			// if (next_timestep == holding_time -1 && next_location == goal_location )
+			// {
+			// 	continue;
+			// }
 			//test
 			//std::cout<<"not constrained: "<<next_location<<"time step"<<next_timestep<<std::endl;
 			
@@ -795,7 +793,7 @@ Path SpaceTimeAStar::findPath(ConstraintTable& constraint_table, const pair<int,
 }
 
 //related to coridor reasoning, pending modification
-int SpaceTimeAStar::getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound)
+int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound)
 {
 	int length = MAX_TIMESTEP;
 	if (constraint_table.length_min >= MAX_TIMESTEP || constraint_table.length_min > constraint_table.length_max || // the agent cannot reach its goal location
@@ -807,52 +805,169 @@ int SpaceTimeAStar::getTravelTime(int end, const ConstraintTable& constraint_tab
 	root->open_handle = open_list.push(root);  // add root to heap
 	allNodes_table.insert(root);       // add root to hash_table (nodes)
 	AStarNode* curr = nullptr;
+	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
 	while (!open_list.empty())
 	{
 		curr = open_list.top(); open_list.pop();
-		if (curr->location == end)
+		if (curr->location == end && curr->cur_direction == end)
 		{
 			length = curr->g_val;
 			break;
 		}
-		list<int> next_locations = instance.getNeighbors(curr->location);
+		//list<int> next_locations = instance.getNeighbors(curr->location);
 		
-		int next_timestep = curr->timestep;
-		int next_g_val = curr->g_val + 1;
-		if (constraint_table.latest_timestep > curr->timestep)
+		// int next_timestep = curr->timestep;
+		// int next_g_val = curr->g_val + 1;
+		// if (constraint_table.latest_timestep > curr->timestep)
+		// {
+		// 	next_locations.emplace_back(curr->location); // wait action
+		// 	next_timestep++;
+		// }
+		for (int i = 0; i < 4; i++)
 		{
-			next_locations.emplace_back(curr->location); // wait action
-			next_timestep++;
-		}
-
-		for (int next_location : next_locations)
-		{
-			if (!constraint_table.constrained(next_location, next_timestep) &&
-				!constraint_table.constrained(curr->location, next_location, next_timestep))
-			{  // if that grid is not blocked
-				int next_h_val = compute_heuristic(next_location, end);
-				if (next_g_val + next_h_val >= upper_bound) // the cost of the path is larger than the upper bound
-					continue;
-				auto next = new AStarNode(next_location,0, next_g_val, next_h_val, curr, next_timestep);
-				auto it = allNodes_table.find(next);
-				if (it == allNodes_table.end())
-				{  // add the newly generated node to heap and hash table
-					next->open_handle = open_list.push(next);
-					allNodes_table.insert(next);
-				}
-				else
-				{  // update existing node's g_val if needed (only in the heap)
-					delete next;  // not needed anymore -- we already generated it before
-					auto existing_next = *it;
-					if (existing_next->g_val > next_g_val)
+			int next_location = curr->location;
+			if (!constraint_table.latest_timestep > curr->timestep && i == 0)
+			{
+				continue;
+			}
+			if (i == 1)
+			{
+				next_location = curr->location + moves_forward_offset[curr->cur_direction];
+			}
+			else if (i != 0)//check useless moves here
+			{
+				int turnleft = 0;
+				int turnright = 0;
+				LLNode* temp = curr;
+				bool prune = false;
+				while(temp->parent != nullptr)
+				{
+					if(temp->parent->location != temp->location)
 					{
-						existing_next->g_val = next_g_val;
-						// existing_next->timestep = next_timestep; // Idon't think we need this?
-						open_list.increase(existing_next->open_handle);
+						break;
 					}
+					int direction1 = temp->cur_direction;
+					int direction2 = temp->parent->cur_direction;
+					if (direction1 == direction2)
+					{
+						temp = temp->parent;
+						continue;
+					}
+					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
+					{
+						if (i == 2)
+						{
+							prune = true;
+							break;
+						}
+						else //before is turn left
+						{
+							turnright++;
+						}
+					}
+					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
+					{
+						if (i == 3)
+						{
+							prune = true;
+							break;
+						}
+						else
+						{
+							turnleft++;
+						}
+					}
+					if((turnleft >= 2 && i == 2) || (turnright>=2 && i ==3))
+					{
+						prune = true;
+						break;
+					}
+					temp = temp->parent;
+				}
+				if(prune)
+				{
+					continue;
 				}
 			}
-		}
+			
+			int next_timestep = curr->timestep + 1;
+			if (!instance.validMove(curr->location,next_location))
+			{
+				continue;
+			}
+
+			int current_direction = curr->cur_direction;
+			int next_direction = current_direction;
+			
+			if(i == 2)
+			{
+				next_direction = current_direction - 1;
+				if (next_direction == -1){
+					next_direction = 3;
+				}
+			}else if(i == 3){
+				next_direction = (current_direction + 1)%4;
+			}
+
+			if (constraint_table.constrained(next_location, next_timestep) ||
+				constraint_table.constrained(curr->location, next_location, next_timestep))
+				continue;
+
+			int next_g_val = curr->g_val + 1;
+			int next_h_val = compute_heuristic(next_location, end);
+
+			if (next_g_val + next_h_val >= upper_bound) // the cost of the path is larger than the upper bound
+				continue;
+			auto next = new AStarNode(next_location,next_direction, next_g_val, next_h_val,
+									  curr, next_timestep);
+
+			auto it = allNodes_table.find(next);
+			if (it == allNodes_table.end())
+			{  // add the newly generated node to heap and hash table
+				next->open_handle = open_list.push(next);
+				allNodes_table.insert(next);
+			}
+			else
+			{  // update existing node's g_val if needed (only in the heap)
+				delete next;  // not needed anymore -- we already generated it before
+				auto existing_next = *it;
+				if (existing_next->g_val > next_g_val)
+				{
+					existing_next->g_val = next_g_val;
+					// existing_next->timestep = next_timestep; // Idon't think we need this?
+					open_list.increase(existing_next->open_handle);
+				}
+			}
+		}  // end for loop that generates successors
+
+		// for (int next_location : next_locations)
+		// {
+		// 	if (!constraint_table.constrained(next_location, next_timestep) &&
+		// 		!constraint_table.constrained(curr->location, next_location, next_timestep))
+		// 	{  // if that grid is not blocked
+		// 		int next_h_val = compute_heuristic(next_location, end);
+		// 		if (next_g_val + next_h_val >= upper_bound) // the cost of the path is larger than the upper bound
+		// 			continue;
+		// 		auto next = new AStarNode(next_location,0, next_g_val, next_h_val, curr, next_timestep);
+		// 		auto it = allNodes_table.find(next);
+		// 		if (it == allNodes_table.end())
+		// 		{  // add the newly generated node to heap and hash table
+		// 			next->open_handle = open_list.push(next);
+		// 			allNodes_table.insert(next);
+		// 		}
+		// 		else
+		// 		{  // update existing node's g_val if needed (only in the heap)
+		// 			delete next;  // not needed anymore -- we already generated it before
+		// 			auto existing_next = *it;
+		// 			if (existing_next->g_val > next_g_val)
+		// 			{
+		// 				existing_next->g_val = next_g_val;
+		// 				// existing_next->timestep = next_timestep; // Idon't think we need this?
+		// 				open_list.increase(existing_next->open_handle);
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 	releaseNodes();
 	return length;
