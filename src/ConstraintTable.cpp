@@ -201,6 +201,8 @@ void ConstraintTable::build(const CBSNode& node, int agent)
 					auto states = decodeBarrier(x, y, t); // state = (location, timestep)
 					for (const auto& state : states)
 					{
+						//test
+						//std::cout<<a<<" "<<state.first<<" "<<state.second<<std::endl;
 						insert2CT(state.first, state.second, state.second + 1);
 					}
 				}

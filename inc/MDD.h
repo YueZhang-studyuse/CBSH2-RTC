@@ -155,4 +155,5 @@ private:
 	void releaseMDDMemory(int id);
 };
 
+//vector<MDDNode*> collectMDDlevel(MDD* mdd, int i);
 unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i);

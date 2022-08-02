@@ -62,15 +62,23 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 						//my heuristic index
 						//moves -> change to turning, wait, and forward
 		//list<int> next_locations = solver->getNextLocations(curr->location);
-		int moves_forward_offset[] = {-solver->getInstanceCols(),1,solver->getInstanceCols(),-1};
+		//int moves_forward_offset[] = {-solver->getInstanceCols(),1,solver->getInstanceCols(),-1};
 
-		for (int i = 0; i < 4; i++) // Try every possible move. We only add backward edges in this step.
+		list<pair<int,int>> next_states = solver->getNeighbors(curr->location,curr->direction);
+		
+		int turning_count = 0;
+		for (pair<int,int> next_state: next_states)
+		//for (int i = 0; i < 4; i++) // Try every possible move. We only add backward edges in this step.
 		{
-			int next_location = curr->location;
-			if (i == 1)
-				next_location = curr->location + moves_forward_offset[curr->direction];
-			else if (i != 0)//check useless moves here
+			int next_location = next_state.first;
+			int next_direction = next_state.second;
+			// int next_location = curr->location;
+			// if (i == 1)
+			// 	next_location = curr->location + moves_forward_offset[curr->direction];
+			// else if (i != 0)//check useless moves here
+			if (next_direction != curr->direction)
 			{
+				turning_count++; //turn left = 1; turn right = 2;
 				int turnleft = 0;
 				int turnright = 0;
 				int location = curr->location;
@@ -94,7 +102,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 					}
 					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
 					{
-						if (i == 2)
+						if (turning_count == 1)
 						{
 							prune = true;
 							break;
@@ -106,7 +114,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 					}
 					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
 					{
-						if (i == 3)
+						if (turning_count == 2)
 						{
 							prune = true;
 							break;
@@ -116,7 +124,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 							turnleft++;
 						}
 					}
-					if((turnleft >= 2 && i == 2) || (turnright>=2 && i ==3))
+					if((turnleft >= 2 && turning_count == 1) || (turnright>=2 && turning_count == 2))
 					{
 						prune = true;
 						break;
@@ -126,31 +134,29 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 				}
 				if(prune)
 				{
-					//test
-					//std::cout<<"prune test";
 					continue;
 				}
 			}
 			//curr->location + instance.calculateMoves(i,curr->cur_direction);
 			//loc + moves_offset[i] * forward_move_offset[curr->cur_direction];
 
-			if (!solver->validMove(curr->location,next_location))
-			{
-				continue;
-			}
-			//next direction
-			int current_direction = curr->direction;
-			int next_direction = current_direction;
+			// if (!solver->validMove(curr->location,next_location))
+			// {
+			// 	continue;
+			// }
+			// //next direction
+			// int current_direction = curr->direction;
+			// int next_direction = current_direction;
 			
-			if(i == 2)
-			{
-				next_direction = current_direction - 1;
-				if (next_direction == -1){
-					next_direction = 3;
-				}
-			}else if(i == 3){
-				next_direction = (current_direction + 1)%4;
-			}
+			// if(i == 2)
+			// {
+			// 	next_direction = current_direction - 1;
+			// 	if (next_direction == -1){
+			// 		next_direction = 3;
+			// 	}
+			// }else if(i == 3){
+			// 	next_direction = (current_direction + 1)%4;
+			// }
 
 			if (solver->my_heuristic[next_location*4 + next_direction] <= heuristicBound &&
 				!ct.constrained(next_location, curr->level + 1) &&
@@ -472,7 +478,7 @@ MDDNode* MDD::goalAt(int level)
 
 	for (MDDNode* ptr: levels[level])
 	{
-		if (ptr->location == solver->goal_location && ptr->cost == level)
+		if (ptr->location == solver->goal_location && ptr->cost == level && ptr->direction == solver->goal_direction)
 		{
 			return ptr;
 		}
@@ -609,8 +615,8 @@ void MDDTable::findSingletons(CBSNode& node, int agent, Path& path)
 {
 	auto mdd = getMDD(node, agent, path.size());
 	//test
-	std::cout<<"mdd for agent "<<agent<<" with cost "<<path.size()-1<<std::endl;
-	mdd->printNodes();
+	// std::cout<<"mdd for agent "<<agent<<" with cost "<<path.size()-1<<std::endl;
+	// mdd->printNodes();
 	for (size_t i = 0; i < mdd->levels.size(); i++)
 		path[i].mdd_width = mdd->levels[i].size();
 	if (lookupTable.empty())
@@ -654,11 +660,25 @@ void MDDTable::clear()
 	lookupTable.clear();
 }
 
+// vector<MDDNode*> collectMDDlevel(MDD* mdd, int i)
+// {
+// 	std::vector<MDDNode*> loc2mdd;
+// 	// unordered_map<int, MDDNode*> loc2mdd;
+// 	for (MDDNode* it_0 : mdd->levels[i])
+// 	{
+// 		loc2mdd.push_back(it_0);
+// 		// int loc = it_0->location;
+// 		// loc2mdd[loc] = it_0;
+// 	}
+// 	return loc2mdd;
+// }
 unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i)
 {
+	//std::vector<MDDNode*> loc2mdd;
 	unordered_map<int, MDDNode*> loc2mdd;
 	for (MDDNode* it_0 : mdd->levels[i])
 	{
+		//loc2mdd.push_back(it_0);
 		int loc = it_0->location;
 		loc2mdd[loc] = it_0;
 	}

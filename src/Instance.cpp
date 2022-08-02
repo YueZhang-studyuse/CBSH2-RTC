@@ -560,6 +560,36 @@ list<int> Instance::getNeighbors(int curr) const
 	return neighbors;
 }
 
+list<pair<int,int>> Instance::getNeighbors(int curr_loc, int curr_direction) const
+{
+	list<pair<int,int>> neighbors;
+	int next_location = curr_loc;
+	int next_direction = curr_direction;
+	//wait
+	neighbors.emplace_back(make_pair(next_location,next_direction));
+	//forward
+	int moves_forward_offset[] = {-num_of_cols,1,num_of_cols,-1};
+	next_location = curr_loc + moves_forward_offset[curr_direction];
+	if (validMove(curr_loc, next_location))
+	{
+		neighbors.emplace_back(make_pair(next_location,next_direction));
+	}
+	//turn left
+	next_location = curr_loc;
+	next_direction = curr_direction - 1;
+	if (next_direction == -1)
+	{
+		next_direction = 3;
+	}
+	neighbors.emplace_back(make_pair(next_location,next_direction));
+	//turn right
+	next_location = curr_loc;
+	next_direction = (curr_direction + 1)%4;
+	neighbors.emplace_back(make_pair(next_location,next_direction));
+	
+	return neighbors;
+}
+
 // int Instance::calculateMoves(int move, int direction) const
 // {
 // 	//std::cout<<" move offset "<<movs_offset[move]<<" move forward offset"<<move_forward_offset[direction]<<std::endl;

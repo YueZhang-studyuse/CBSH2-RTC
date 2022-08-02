@@ -1003,29 +1003,6 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 						constraint_type::POSITIVE_RANGE);
 				}
 			}
-			//experiment test here
-			// int previous_number_of_conflict = -1;
-			// if (curr->conflict->type == conflict_type::TARGET)
-			// {
-			// 	previous_number_of_conflict = 0;
-			// 	int a1 = curr->conflict->a1;
-			// 	int a2 = curr->conflict->a2;
-			// 	//count the conflict between these two agent
-			// 	size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
-			// 	for (size_t timestep = 0; timestep < min_path_length; timestep++)
-			// 	{
-			// 		int loc1 = paths[a1]->at(timestep).location;
-			// 		int loc2 = paths[a2]->at(timestep).location;
-			// 		if (loc1 == loc2)
-			// 		{
-			// 			previous_number_of_conflict++;
-			// 			if (timestep == min_path_length - 1)
-			// 			{
-			// 				previous_number_of_conflict--; //do not count target conflict
-			// 			}
-			// 		}
-			// 	}
-			// }
 
 			if (screen > 1)
 				cout << "	Expand " << *curr << endl <<

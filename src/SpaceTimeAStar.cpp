@@ -22,6 +22,8 @@ void SpaceTimeAStar::updatePath(const LLNode* goal, vector<PathEntry>& path)
 // Returns a shortest path that satisfies the constraints of the given node while
 // minimizing the number of internal conflicts (that is conflicts with known_paths for other agents found so far).
 // lowerbound is an underestimation of the length of the path in order to speed up the search.
+
+//rotaion version 2, change the instance function to get neighbors
 Path SpaceTimeAStar::findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
 							  const vector<Path*>& paths, int agent, int lowerbound)
 {
@@ -254,6 +256,7 @@ Path SpaceTimeAStar::findPath(const CBSNode& node, const ConstraintTable& initia
 }
 
 // find a shortest path from start_state to the goal location
+//not modified to rotation yet, need to modify the start state parameter to involve direction
 Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const pair<int, int> start_state, int lowerbound)
 {
 	// generate start and add it to the OPEN & FOCAL list
@@ -289,19 +292,15 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 	int holding_time = constraint_table.getHoldingTime(); // the earliest timestep that the agent can hold its goal location. The length_min is considered here.
 	lower_bound = max(holding_time - start_state.second, max(min_f_val, lowerbound));
 
-	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
+	//int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
 	//test
 	//std::cout<<"start: "<<start_location<<std::endl;
 
 
 	while (!open_list.empty())
 	{
-		//std::cout<<"1 ";
 		updateFocalList(); // update FOCAL if min f-val increased
 		auto* curr = popNode();
-		//std::cout<<"2 ";
-		//test
-		//std::cout<<"Expanding... "<<curr->location<<" direction "<<curr->cur_direction<<" timestep "<<curr->timestep<<" wait at goal? "<<curr->wait_at_goal<<std::endl;
 
 		// check if the popped node is a goal
 		if (curr->location == goal_location && // arrive at the goal location
@@ -309,27 +308,31 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			!curr->wait_at_goal && // not wait at the goal location
 			curr->timestep >= holding_time) // the agent can hold the goal location afterward
 		{
-			//test
-			//std::cout<<"Find goal"<<std::endl;
 			updatePath(curr, path);
 			break;
 		}
-		//std::cout<<"3 ";
 
 		if (curr->timestep >= constraint_table.length_max)
 			continue;
 
 		//list<int> next_locations = instance.getNeighbors(curr->location);
-		//next_locations.emplace_back(curr->location);
-		for (int i = 0; i < 4; i++)
+		list<pair<int,int>> next_states = instance.getNeighbors(curr->location,curr->cur_direction);
+		
+		int turning_count = 0;
+		for (pair<int,int> next_state: next_states)
+		//for (int i = 0; i < 4; i++)
 		{
-			int next_location = curr->location;
-			if (i == 1)
+			int next_location = next_state.first;
+			int next_direction = next_state.second;
+			// int next_location = curr->location;
+			// if (i == 1)
+			// {
+			// 	next_location = curr->location + moves_forward_offset[curr->cur_direction];
+			// }
+			//else if (i != 0)//check useless moves here
+			if (next_direction != curr->cur_direction)
 			{
-				next_location = curr->location + moves_forward_offset[curr->cur_direction];
-			}
-			else if (i != 0)//check useless moves here
-			{
+				turning_count++; //turn left = 1; turn right = 2;
 				int turnleft = 0;
 				int turnright = 0;
 				LLNode* temp = curr;
@@ -349,7 +352,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 					}
 					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
 					{
-						if (i == 2)
+						if (turning_count == 1)
 						{
 							prune = true;
 							break;
@@ -361,7 +364,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 					}
 					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
 					{
-						if (i == 3)
+						if (turning_count == 2)
 						{
 							prune = true;
 							break;
@@ -371,7 +374,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 							turnleft++;
 						}
 					}
-					if((turnleft >= 2 && i == 2) || (turnright>=2 && i ==3))
+					if((turnleft >= 2 && turning_count == 1) || (turnright>=2 && turning_count == 2))
 					{
 						prune = true;
 						break;
@@ -389,26 +392,24 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			int next_timestep = curr->timestep + 1;
 			//std::cout<<"curr "<< curr->location<<" next"<< next_location<<std::endl;
 
-			if (!instance.validMove(curr->location,next_location))
-			{
-				//std::cout<<"cut1 "<<std::endl;
-				continue;
-			}
-			//std::cout<<"cut "<<std::endl;
+			// if (!instance.validMove(curr->location,next_location))
+			// {
+			// 	continue;
+			// }
 
 			//next direction
-			int current_direction = curr->cur_direction;
-			int next_direction = current_direction;
+			// int current_direction = curr->cur_direction;
+			// int next_direction = current_direction;
 			
-			if(i == 2)
-			{
-				next_direction = current_direction - 1;
-				if (next_direction == -1){
-					next_direction = 3;
-				}
-			}else if(i == 3){
-				next_direction = (current_direction + 1)%4;
-			}
+			// if(i == 2)
+			// {
+			// 	next_direction = current_direction - 1;
+			// 	if (next_direction == -1){
+			// 		next_direction = 3;
+			// 	}
+			// }else if(i == 3){
+			// 	next_direction = (current_direction + 1)%4;
+			// }
 
 			//test
 			//std::cout<<"Generating... "<<next_location<<" direction "<<next_direction<<" timestep "<<next_timestep<<std::endl;
@@ -507,6 +508,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 }
 
 // find a shortest path from start_state to the goal location while traversing the landmark
+//for disjoint splitting, not yet modified to rotation version 2
 Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const pair<int, int> start_state,
         int lowerbound, const pair<int, int> landmark)
 {

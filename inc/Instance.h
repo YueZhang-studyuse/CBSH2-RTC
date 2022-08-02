@@ -30,12 +30,67 @@ public:
 	}
 
 	list<int> getNeighbors(int curr) const;
+	list<pair<int,int>> getNeighbors(int curr_loc, int curr_direction) const;
     inline int linearizeCoordinate(int row, int col) const { return ( this->num_of_cols * row + col); }
 	inline int linearizeCoordinate(const pair<int, int>& cell) const { return linearizeCoordinate(cell.first, cell.second); }
 	inline int getRowCoordinate(int id) const { return id / this->num_of_cols; }
 	inline int getColCoordinate(int id) const { return id % this->num_of_cols; }
 	inline pair<int, int> getCoordinate(int id) const { return make_pair(id / this->num_of_cols, id % this->num_of_cols); }
 	inline int getCols() const { return num_of_cols; }
+
+	inline int getTurning(pair<int, int> start, pair<int, int> goal, int sd, int gd) const
+	{
+		int d1 = -1;
+		int d2 = -1;
+		if (start.first < goal.first)
+		{
+			d1 = 2;
+		}
+		if (start.first > goal.first)
+		{
+			d1 = 0;
+		}
+		if (start.second < goal.second)
+		{
+			d2 = 1;
+		}
+		if (start.second > goal.second)
+		{
+			d2 = 3;
+		}
+		if(d1 != -1 && d2 != -1)
+		{
+			if (gd == -1)
+			{
+				return (min(abs(sd-d1), abs(sd-d2)) + 1);
+			}
+			return (min(abs(sd-d1) + abs(gd-d2), abs(sd-d2) + abs(gd-d1)) + 1);
+		}
+		else if (d1 == -1 && d2 == -1)
+		{
+			if (gd == -1)
+			{
+				return 0;
+			}
+			return abs(sd-gd);
+		}
+		else if (d1 == -1)
+		{
+			if (gd == -1)
+			{
+				return abs(sd-d2);
+			}
+			return (abs(sd-d2) + abs(gd-d2));
+		}
+		else
+		{
+			if (gd == -1)
+			{
+				return abs(sd-d1);
+			}
+			return (abs(sd-d1) + abs(gd-d1));
+		}
+	}
 
 	inline int getManhattanDistance(int loc1, int loc2) const
 	{
@@ -45,6 +100,16 @@ public:
 		int loc2_y = getColCoordinate(loc2);
 		//std::cout<<abs(loc1_x - loc2_x) + abs(loc1_y - loc2_y)<<std::endl;
 		return abs(loc1_x - loc2_x) + abs(loc1_y - loc2_y);
+	}
+
+	inline int getManhattanDistance(int loc1, int loc2, int sd, int gd) const
+	{
+		int loc1_x = getRowCoordinate(loc1);
+		int loc1_y = getColCoordinate(loc1);
+		int loc2_x = getRowCoordinate(loc2);
+		int loc2_y = getColCoordinate(loc2);
+		//std::cout<<abs(loc1_x - loc2_x) + abs(loc1_y - loc2_y)<<std::endl;
+		return abs(loc1_x - loc2_x) + abs(loc1_y - loc2_y) + getTurning(make_pair(loc1_x,loc1_y), make_pair(loc2_x,loc2_y), sd, gd);
 	}
 
 	static inline int getManhattanDistance(const pair<int, int>& loc1, const pair<int, int>& loc2)
