@@ -561,6 +561,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 			runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 			return false;
 		}
+		//printPaths();
 	}
 
 	assert(!node->paths.empty());
@@ -836,6 +837,13 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 		if (runtime > time_limit || num_HL_expanded > node_limit
 		    || heuristic_helper.sub_instances.size() >= MAX_NUM_STATS)
 		{  // time/node out
+			solution_cost = -1;
+			solution_found = false;
+			break;
+		}
+		//test
+		if (num_HL_expanded >10)
+		{
 			solution_cost = -1;
 			solution_found = false;
 			break;

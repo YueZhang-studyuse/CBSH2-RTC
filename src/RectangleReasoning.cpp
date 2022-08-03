@@ -785,10 +785,10 @@ void RectangleReasoning::projectMDD2Map(vector<MDDNode*>& mapping, const MDD* md
     {
         for (auto const& node : level)
         {
-            if (mapping[node->location * node->direction] != nullptr) // if the location has been visited before
-                mapping[node->location * node->direction] = multiple_visits;
+            if (mapping[node->location] != nullptr) // if the location has been visited before
+                mapping[node->location] = multiple_visits;
             else
-                mapping[node->location * node->direction] = node;  // >=0 means the locations can only be visited at the timestep
+                mapping[node->location] = node;  // >=0 means the locations can only be visited at the timestep
         }
     }
 }
