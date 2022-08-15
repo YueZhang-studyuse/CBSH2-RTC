@@ -56,6 +56,12 @@ public:
 	list<pair<int, Path>> paths; // new paths
 	list<Constraint> constraints; // new constraints
 
+	list<CBSNode*> ancestors; //list of all parents until root -change to constraints in version 2
+	unordered_map<int,int> paths_costs;
+
+	//need to know the pruned constraint?
+	list<Constraint> pruned_constraint;
+
 
 	int g_val;
 	int h_val;

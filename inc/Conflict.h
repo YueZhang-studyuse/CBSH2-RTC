@@ -23,6 +23,30 @@ typedef std::tuple<int, int, int, int, constraint_type> Constraint;
 // <agent, loc, -1, t, LEQLENGTH>: path of agent_id should be of length at most t, and any other agent cannot be at loc at or after timestep t
 // <agent, loc, -1, t, GLENGTH>: path of agent_id should be of length at least t + 1
 
+//need hash related functions in global constraint table
+// The following is used by for generating the hash value of a constraint
+struct ConstraintHasher
+{
+	size_t operator()(const Constraint& c) const
+	{
+		size_t cons_hash = 3 * std::hash<int>()(std::get<0>(c)) +
+									 5 * std::hash<int>()(std::get<1>(c)) +
+									 7 * std::hash<int>()(std::get<2>(c)) +
+									 11 * std::hash<int>()(std::get<3>(c));
+		return cons_hash;
+	}
+};
+
+// The following is used for checking whether two constraints are equal
+struct eqconstraint
+{
+	bool operator()(const Constraint& c1, const Constraint& c2) const
+	{
+		return c1 == c2;
+	}
+};
+
+
 std::ostream& operator<<(std::ostream& os, const Constraint& constraint);
 
 
@@ -36,6 +60,10 @@ public:
 	conflict_type type;
 	conflict_priority priority = conflict_priority::UNKNOWN;
 	double secondary_priority = 0; // used as the tie-breaking criteria for conflict selection
+
+	//debug for target-follow-up conflict
+	bool target_failed = false;
+	bool target_follow_up = false;
 
 	void vertexConflict(int _a1, int _a2, int v, int t)
 	{

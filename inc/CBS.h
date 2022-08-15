@@ -33,6 +33,10 @@ public:
 	uint64_t num_LL_expanded = 0;
 	uint64_t num_LL_generated = 0;
 
+	//debug for target
+	uint64_t target_failed = 0;
+	uint64_t target_follow_up = 0;
+
 
 	CBSNode* dummy_start = nullptr;
 	CBSNode* goal_node = nullptr;
@@ -43,6 +47,13 @@ public:
 	int solution_cost = -2;
 	double min_f_val;
 	double focal_list_threshold;
+
+	//constraints
+	// define typedef for hash_map
+	typedef unordered_map<Constraint, list<CBSNode*>, ConstraintHasher, eqconstraint> hashtable_c;
+	hashtable_c global_constraints;
+
+	bool shouldPrune(CBSNode* n1, CBSNode* n2, Constraint c); //whether to prune n1
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// set params
@@ -83,6 +94,8 @@ private:
 	bool bypass; // using Bypass1
 	bool PC; // prioritize conflicts
 	bool save_stats;
+
+	bool pruning = false;
 
 	MDDTable mdd_helper;	
 	RectangleReasoning rectangle_helper;
