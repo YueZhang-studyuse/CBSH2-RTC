@@ -292,7 +292,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 	int holding_time = constraint_table.getHoldingTime(); // the earliest timestep that the agent can hold its goal location. The length_min is considered here.
 	lower_bound = max(holding_time - start_state.second, max(min_f_val, lowerbound));
 
-	//int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
+	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
 	//test
 	//std::cout<<"start: "<<start_location<<std::endl;
 
@@ -319,20 +319,20 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 		list<pair<int,int>> next_states = instance.getNeighbors(curr->location,curr->cur_direction);
 		
 		int turning_count = 0;
-		for (pair<int,int> next_state: next_states)
-		//for (int i = 0; i < 4; i++)
+		//for (pair<int,int> next_state: next_states)
+		for (int i = 0; i < 4; i++)
 		{
-			int next_location = next_state.first;
-			int next_direction = next_state.second;
-			// int next_location = curr->location;
-			// if (i == 1)
-			// {
-			// 	next_location = curr->location + moves_forward_offset[curr->cur_direction];
-			// }
-			//else if (i != 0)//check useless moves here
-			if (next_direction != curr->cur_direction)
+			//int next_location = next_state.first;
+			//int next_direction = next_state.second;
+			int next_location = curr->location;
+			if (i == 1)
 			{
-				turning_count++; //turn left = 1; turn right = 2;
+				next_location = curr->location + moves_forward_offset[curr->cur_direction];
+			}
+			else if (i != 0)//check useless moves here
+			//if (next_direction != curr->cur_direction)
+			{
+				//turning_count++; //turn left = 1; turn right = 2;
 				int turnleft = 0;
 				int turnright = 0;
 				LLNode* temp = curr;
@@ -352,7 +352,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 					}
 					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
 					{
-						if (turning_count == 1)
+						if (i==2)
 						{
 							prune = true;
 							break;
@@ -364,7 +364,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 					}
 					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
 					{
-						if (turning_count == 2)
+						if (i==3)
 						{
 							prune = true;
 							break;
@@ -374,7 +374,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 							turnleft++;
 						}
 					}
-					if((turnleft >= 2 && turning_count == 1) || (turnright>=2 && turning_count == 2))
+					if((turnleft >= 2 && i==2) || (turnright>=2 && i==3))
 					{
 						prune = true;
 						break;
@@ -392,24 +392,24 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			int next_timestep = curr->timestep + 1;
 			//std::cout<<"curr "<< curr->location<<" next"<< next_location<<std::endl;
 
-			// if (!instance.validMove(curr->location,next_location))
-			// {
-			// 	continue;
-			// }
+			if (!instance.validMove(curr->location,next_location))
+			{
+				continue;
+			}
 
 			//next direction
-			// int current_direction = curr->cur_direction;
-			// int next_direction = current_direction;
+			int current_direction = curr->cur_direction;
+			int next_direction = current_direction;
 			
-			// if(i == 2)
-			// {
-			// 	next_direction = current_direction - 1;
-			// 	if (next_direction == -1){
-			// 		next_direction = 3;
-			// 	}
-			// }else if(i == 3){
-			// 	next_direction = (current_direction + 1)%4;
-			// }
+			if(i == 2)
+			{
+				next_direction = current_direction - 1;
+				if (next_direction == -1){
+					next_direction = 3;
+				}
+			}else if(i == 3){
+				next_direction = (current_direction + 1)%4;
+			}
 
 			//test
 			//std::cout<<"Generating... "<<next_location<<" direction "<<next_direction<<" timestep "<<next_timestep<<std::endl;
@@ -811,8 +811,9 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 	while (!open_list.empty())
 	{
 		curr = open_list.top(); open_list.pop();
-		if (curr->location == end && curr->cur_direction == end)
+		if ((curr->location == end && direction == -1) || (curr->location == end && curr->cur_direction == direction && direction != -1))
 		{
+			//std::cout<<curr->parent->location<<std::endl;
 			length = curr->g_val;
 			break;
 		}
@@ -825,12 +826,17 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 		// 	next_locations.emplace_back(curr->location); // wait action
 		// 	next_timestep++;
 		// }
+		int next_timestep = curr->timestep;
 		for (int i = 0; i < 4; i++)
 		{
 			int next_location = curr->location;
 			if (!constraint_table.latest_timestep > curr->timestep && i == 0)
 			{
 				continue;
+			}
+			if (i == 0)
+			{
+				next_timestep++;
 			}
 			if (i == 1)
 			{
@@ -892,7 +898,6 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 				}
 			}
 			
-			int next_timestep = curr->timestep + 1;
 			if (!instance.validMove(curr->location,next_location))
 			{
 				continue;

@@ -10,7 +10,7 @@ void MDD::printNodes() const
 		cout << "[";
 		for (auto node : level)
 		{
-			cout << node->location << " "<< node->direction << ",";
+			cout << node->location << ",";
 		}
 		cout << "]," << endl;
 	}
@@ -35,9 +35,9 @@ void MDD::printNodes() const
 
 bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAgentSolver* _solver)
 {
-  this->solver = _solver;
-  auto root = new MDDNode(solver->start_location, solver->start_direction, nullptr); // Root
-  root->cost = num_of_levels - 1;
+  	this->solver = _solver;
+  	auto root = new MDDNode(solver->start_location, solver->start_direction, nullptr); // Root
+  	root->cost = num_of_levels - 1;
 	std::queue<MDDNode*> open;
 	list<MDDNode*> closed;
 	open.push(root);
@@ -62,101 +62,101 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 						//my heuristic index
 						//moves -> change to turning, wait, and forward
 		//list<int> next_locations = solver->getNextLocations(curr->location);
-		//int moves_forward_offset[] = {-solver->getInstanceCols(),1,solver->getInstanceCols(),-1};
+		int moves_forward_offset[] = {-solver->getInstanceCols(),1,solver->getInstanceCols(),-1};
 
-		list<pair<int,int>> next_states = solver->getNeighbors(curr->location,curr->direction);
+		//list<pair<int,int>> next_states = solver->getNeighbors(curr->location,curr->direction);
 		
-		int turning_count = 0;
-		for (pair<int,int> next_state: next_states)
-		//for (int i = 0; i < 4; i++) // Try every possible move. We only add backward edges in this step.
+		//int turning_count = 0;
+		//for (pair<int,int> next_state: next_states)
+		for (int i = 0; i < 4; i++) // Try every possible move. We only add backward edges in this step.
 		{
-			int next_location = next_state.first;
-			int next_direction = next_state.second;
-			// int next_location = curr->location;
-			// if (i == 1)
-			// 	next_location = curr->location + moves_forward_offset[curr->direction];
-			// else if (i != 0)//check useless moves here
-			if (next_direction != curr->direction)
+			// int next_location = next_state.first;
+			// int next_direction = next_state.second;
+			int next_location = curr->location;
+			if (i == 1)
+				next_location = curr->location + moves_forward_offset[curr->direction];
+			else if (i != 0)//check useless moves here
+			//if (next_direction != curr->direction)
 			{
-				turning_count++; //turn left = 1; turn right = 2;
+				//turning_count++; //turn left = 1; turn right = 2;
 				int turnleft = 0;
 				int turnright = 0;
 				int location = curr->location;
 				int direction1 = curr->direction;
 				bool prune = false;
 				//while(temp->parent != nullptr)
-				for(auto it = curr->parents.rbegin(); it != curr->parents.rend();++it)
-				{
-					//break;
-					if((*it)->location != location)
-					{
-						break;
-					}
-					//int direction1 = temp->direction;
-					int direction2 = (*it)->direction;
-					if (direction1 == direction2)
-					{
-						location = (*it)->location;
-						direction1 = (*it)->direction;
-						continue;
-					}
-					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
-					{
-						if (turning_count == 1)
-						{
-							prune = true;
-							break;
-						}
-						else //before is turn left
-						{
-							turnright++;
-						}
-					}
-					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
-					{
-						if (turning_count == 2)
-						{
-							prune = true;
-							break;
-						}
-						else
-						{
-							turnleft++;
-						}
-					}
-					if((turnleft >= 2 && turning_count == 1) || (turnright>=2 && turning_count == 2))
-					{
-						prune = true;
-						break;
-					}
-					location = (*it)->location;
-					direction1 = (*it)->direction;
-				}
-				if(prune)
-				{
-					continue;
-				}
+				// for(auto it = curr->parents.rbegin(); it != curr->parents.rend();++it)
+				// {
+				// 	//break;
+				// 	if((*it)->location != location)
+				// 	{
+				// 		break;
+				// 	}
+				// 	//int direction1 = temp->direction;
+				// 	int direction2 = (*it)->direction;
+				// 	if (direction1 == direction2)
+				// 	{
+				// 		location = (*it)->location;
+				// 		direction1 = (*it)->direction;
+				// 		continue;
+				// 	}
+				// 	if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
+				// 	{
+				// 		if (i==2)
+				// 		{
+				// 			prune = true;
+				// 			break;
+				// 		}
+				// 		else //before is turn left
+				// 		{
+				// 			turnright++;
+				// 		}
+				// 	}
+				// 	if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
+				// 	{
+				// 		if (i==3)
+				// 		{
+				// 			prune = true;
+				// 			break;
+				// 		}
+				// 		else
+				// 		{
+				// 			turnleft++;
+				// 		}
+				// 	}
+				// 	if((turnleft >= 2 && i==2) || (turnright>=2 && i==3))
+				// 	{
+				// 		prune = true;
+				// 		break;
+				// 	}
+				// 	location = (*it)->location;
+				// 	direction1 = (*it)->direction;
+				// }
+				// if(prune)
+				// {
+				// 	//continue;
+				// }
 			}
 			//curr->location + instance.calculateMoves(i,curr->cur_direction);
 			//loc + moves_offset[i] * forward_move_offset[curr->cur_direction];
 
-			// if (!solver->validMove(curr->location,next_location))
-			// {
-			// 	continue;
-			// }
-			// //next direction
-			// int current_direction = curr->direction;
-			// int next_direction = current_direction;
+			if (!solver->validMove(curr->location,next_location))
+			{
+				continue;
+			}
+			//next direction
+			int current_direction = curr->direction;
+			int next_direction = current_direction;
 			
-			// if(i == 2)
-			// {
-			// 	next_direction = current_direction - 1;
-			// 	if (next_direction == -1){
-			// 		next_direction = 3;
-			// 	}
-			// }else if(i == 3){
-			// 	next_direction = (current_direction + 1)%4;
-			// }
+			if(i == 2)
+			{
+				next_direction = current_direction - 1;
+				if (next_direction == -1){
+					next_direction = 3;
+				}
+			}else if(i == 3){
+				next_direction = (current_direction + 1)%4;
+			}
 
 			if (solver->my_heuristic[next_location*4 + next_direction] <= heuristicBound &&
 				!ct.constrained(next_location, curr->level + 1) &&
@@ -186,6 +186,9 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 	assert(levels.back().size() == 1);
 
 	// Backward
+	// add merging locations here
+	// using a temp map to store each level's node by location, merge the same location together, and then push to levels 
+	unordered_map<int,list<MDDNode*>> temp_mdds;
 	auto goal_node = levels.back().back();
 	MDDNode* del = nullptr;
 	for (auto parent : goal_node->parents)
@@ -195,24 +198,174 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 			del = parent;
 			continue;
 		}
-		levels[num_of_levels - 2].push_back(parent);
-		parent->children.push_back(goal_node); // add forward edge	
+		//merge together by locaion
+		if (temp_mdds.find(parent->location) != temp_mdds.end())
+		{
+			temp_mdds[parent->location].push_back(parent);
+		}
+		else
+		{
+			list<MDDNode*> node;
+			node.push_back(parent);
+			temp_mdds.insert({parent->location,node});
+		}
+		//levels[num_of_levels - 2].push_back(parent);
+		//parent->children.push_back(goal_node); // add forward edge	
 	}
 	if (del != nullptr)
 		goal_node->parents.remove(del);
+	//insert the num_of_levels-2 here
+	for (auto temp:temp_mdds)
+	{
+		if (temp.second.size() == 1)
+		{
+			temp.second.front()->direction = -1;
+			levels[num_of_levels - 2].push_back(temp.second.front());
+			temp.second.front()->children.push_back(goal_node);
+		}
+		else
+		{
+			MDDNode* n = temp.second.front();
+			unordered_set<MDDNode*> temp_parents;
+			for (auto p: n->parents)
+			{
+				if (temp_parents.find(p) == temp_parents.end())
+				{
+					n->parents.push_back(p);
+					temp_parents.insert(p);
+				}
+				//temp_parents.insert(p);
+			}
+			list<MDDNode*>::iterator it;
+			it = temp.second.begin();
+			it++;
+			while(it != temp.second.end())
+			{
+				for (auto p: (*it)->parents)
+				{
+					if (temp_parents.find(p) == temp_parents.end())
+					{
+						n->parents.push_back(p);
+						temp_parents.insert(p);
+					}
+				}
+				//delete *(it);
+				it++;
+			}
+			n->direction = -1;
+			levels[num_of_levels - 2].push_back(n);
+			n->children.push_back(goal_node);
+		}
+	}
+	goal_node->parents.clear();
+	for (auto p: levels[num_of_levels-2])
+	{
+		goal_node->parents.push_back(p);
+	}
+
 	for (int t = num_of_levels - 2; t > 0; t--)
 	{
-		for (auto node : levels[t])
+		//map to store nodes that from different children, but has the same location
+		temp_mdds.clear();
+		for (auto node : levels[t]) //different node may have the same parent
 		{
+			//merge node has the same location
 			for (auto parent : node->parents)
 			{
-				if (parent->children.empty()) // a new node
+				//get node with unique locations here
+				if (temp_mdds.find(parent->location) != temp_mdds.end())
 				{
-					levels[t - 1].push_back(parent);
+					temp_mdds[parent->location].push_back(parent);
 				}
+				else
+				{
+					list<MDDNode*> node;
+					node.push_back(parent);
+					temp_mdds.insert({parent->location,node});
+				}
+
+				//need to modify here
+				// if (parent->children.empty()) // a new node
+				// {
+				// 	levels[t - 1].push_back(parent);
+				// }
+				//mark the children first
 				parent->children.push_back(node); // add forward edge	
 			}
 		}
+		//std::cout<<temp_mdds.size()<<std::endl;
+		//insert to levels now: merge parent and merge children
+		for (auto temp:temp_mdds)
+		{
+			if (temp.second.size() == 1)
+			{
+				temp.second.front()->direction = -1;
+				//if (temp.second.front()->children.empty()) // a new node
+				//{
+					levels[t - 1].push_back(temp.second.front());
+				//}
+				//levels[num_of_levels - 2].push_back(temp.second.front());
+				//temp.second.front()->children.push_back(node);
+			}
+			else
+			{
+				MDDNode* n = temp.second.front();
+				unordered_set<MDDNode*> temp_parents;
+				unordered_set<MDDNode*> temp_children;
+				for (auto p: n->parents)
+				{
+					//temp_parents.insert(p);
+					if (temp_parents.find(p) == temp_parents.end())
+					{
+						n->parents.push_back(p);
+						temp_parents.insert(p);
+					}
+				}
+				for (auto c: n->children)
+				{
+					//temp_children.insert(c);
+					if (temp_children.find(c) == temp_children.end())
+					{
+						n->children.push_back(c);
+						temp_children.insert(c);
+					}
+				}
+				list<MDDNode*>::iterator it;
+				it = temp.second.begin();
+				it++;
+				while(it != temp.second.end())
+				{
+					for (auto p: (*it)->parents)
+					{
+						if (temp_parents.find(p) == temp_parents.end())
+						{
+							n->parents.push_back(p);
+							temp_parents.insert(p);
+						}
+					}
+					for (auto c: (*it)->children)
+					{
+						if (temp_children.find(c) == temp_children.end())
+						{
+							n->children.push_back(c);
+							temp_children.insert(c);
+						}
+					}
+					it++;
+					//delete *(it);
+				}
+			n->direction = -1;
+			// if (n->children.empty())
+			// {
+			levels[t-1].push_back(n);
+			//}
+			//n->children.push_back(node);
+			}
+		}
+		//}
+		//after get all parents from level t, also need to merge again here
+		//check redundant in levels t-1 and merge children and parents together
+		//maybe not insert in the previous step
 	}
 
 	// Delete useless nodes (nodes who don't have any children)
@@ -328,11 +481,11 @@ void MDD::clear()
 	levels.clear();
 }
 
-MDDNode* MDD::find(int location, int direction, int level) const
+MDDNode* MDD::find(int location, int level) const
 {
 	if (level < (int) levels.size())
 		for (auto it : levels[level])
-			if (it->location == location && it->direction == direction)
+			if (it->location == location)
 				return it;
 	return nullptr;
 }
@@ -340,20 +493,20 @@ MDDNode* MDD::find(int location, int direction, int level) const
 MDD::MDD(const MDD& cpy) // deep copy
 {
 	levels.resize(cpy.levels.size());
-	auto root = new MDDNode(cpy.levels[0].front()->location,cpy.levels[0].front()->direction, nullptr);
+	auto root = new MDDNode(cpy.levels[0].front()->location, nullptr);
   	root->cost = cpy.levels.size() - 1;
 	levels[0].push_back(root);
 	for (size_t t = 0; t < levels.size() - 1; t++)
 	{
 		for (auto node = levels[t].begin(); node != levels[t].end(); ++node)
 		{
-			MDDNode* cpyNode = cpy.find((*node)->location,(*node)->direction, (*node)->level);
+			MDDNode* cpyNode = cpy.find((*node)->location, (*node)->level);
 			for (list<MDDNode*>::const_iterator cpyChild = cpyNode->children.begin(); cpyChild != cpyNode->children.end(); ++cpyChild)
 			{
-				MDDNode* child = find((*cpyChild)->location, (*cpyChild)->direction, (*cpyChild)->level);
+				MDDNode* child = find((*cpyChild)->location, (*cpyChild)->level);
 				if (child == nullptr)
 				{
-					child = new MDDNode((*cpyChild)->location, (*cpyChild)->direction, (*node));
+					child = new MDDNode((*cpyChild)->location, (*node));
 					child->cost = (*cpyChild)->cost;
 					levels[child->level].push_back(child);
 					(*node)->children.push_back(child);
@@ -505,19 +658,19 @@ std::ostream& operator<<(std::ostream& os, const MDD& mdd)
 SyncMDD::SyncMDD(const MDD& cpy) // deep copy of a MDD
 {
 	levels.resize(cpy.levels.size());
-	auto root = new SyncMDDNode(cpy.levels[0].front()->location, cpy.levels[0].front()->direction, nullptr);
+	auto root = new SyncMDDNode(cpy.levels[0].front()->location, nullptr);
 	levels[0].push_back(root);
 	for (int t = 0; t < (int) levels.size() - 1; t++)
 	{
 		for (auto node = levels[t].begin(); node != levels[t].end(); ++node)
 		{
-			MDDNode* cpyNode = cpy.find((*node)->location, (*node)->direction, t);
+			MDDNode* cpyNode = cpy.find((*node)->location, t);
 			for (list<MDDNode*>::const_iterator cpyChild = cpyNode->children.begin(); cpyChild != cpyNode->children.end(); ++cpyChild)
 			{
-				SyncMDDNode* child = find((*cpyChild)->location, (*cpyChild)->direction, (*cpyChild)->level);
+				SyncMDDNode* child = find((*cpyChild)->location, (*cpyChild)->level);
 				if (child == nullptr)
 				{
-					child = new SyncMDDNode((*cpyChild)->location, (*cpyChild)->direction, (*node));
+					child = new SyncMDDNode((*cpyChild)->location, (*node));
 					levels[t + 1].push_back(child);
 					(*node)->children.push_back(child);
 				}
@@ -532,11 +685,11 @@ SyncMDD::SyncMDD(const MDD& cpy) // deep copy of a MDD
 	}
 }
 
-SyncMDDNode* SyncMDD::find(int location,int direction, int level) const
+SyncMDDNode* SyncMDD::find(int location, int level) const
 {
 	if (level < (int) levels.size())
 		for (auto it : levels[level])
-			if (it->location == location && it->direction == direction)
+			if (it->location == location)
 				return it;
 	return nullptr;
 }
@@ -615,8 +768,8 @@ void MDDTable::findSingletons(CBSNode& node, int agent, Path& path)
 {
 	auto mdd = getMDD(node, agent, path.size());
 	//test
-	// std::cout<<"mdd for agent "<<agent<<" with cost "<<path.size()-1<<std::endl;
-	// mdd->printNodes();
+	//std::cout<<"mdd for agent "<<agent<<" with cost "<<path.size()-1<<std::endl;
+	//mdd->printNodes();
 	for (size_t i = 0; i < mdd->levels.size(); i++)
 		path[i].mdd_width = mdd->levels[i].size();
 	if (lookupTable.empty())

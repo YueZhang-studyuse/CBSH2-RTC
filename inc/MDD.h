@@ -43,7 +43,7 @@ public:
 
 	bool operator==(const MDDNode& node) const
 	{
-		return (this->location == node.location) && (this->level == node.level) && (this->direction == node.direction);
+		return (this->location == node.location) && (this->level == node.level);
 	}
 
 
@@ -64,7 +64,7 @@ public:
 	// bool buildMDD(const std::vector <std::list< std::pair<int, int> > >& constraints, int numOfLevels,
 	// 	int start_location, const int* moves_offset, const std::vector<int>& my_heuristic, int map_size, int num_col);
 	void printNodes() const;
-	MDDNode* find(int location, int direction, int level) const;
+	MDDNode* find(int location, int level) const;
 	void deleteNode(MDDNode* node);
 	void clear();
 	// bool isConstrained(int curr_id, int next_id, int next_timestep, const std::vector< std::list< std::pair<int, int> > >& cons) const;
@@ -93,13 +93,24 @@ public:
 		}
 		//parent = NULL;
 	}
+	SyncMDDNode(int currloc, SyncMDDNode* parent)
+	{
+		location = currloc;
+		direction = -1;
+		if (parent != nullptr)
+		{
+			//level = parent->level + 1;
+			parents.push_back(parent);
+		}
+		//parent = NULL;
+	}
 	int location;
 	int direction;
 	//int level;
 
 	bool operator==(const SyncMDDNode& node) const
 	{
-		return (this->location == node.location) && (this->direction == node.direction);
+		return (this->location == node.location);
 	}
 
 
@@ -115,7 +126,7 @@ class SyncMDD
 public:
 	vector<list<SyncMDDNode*>> levels;
 
-	SyncMDDNode* find(int location, int direction, int level) const;
+	SyncMDDNode* find(int location, int level) const;
 	void deleteNode(SyncMDDNode* node, int level);
 	void clear();
 
