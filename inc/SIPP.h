@@ -71,7 +71,7 @@ public:
 	// lowerbound is an underestimation of the length of the path in order to speed up the search.
 	Path findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
 		const vector<Path*>& paths, int agent, int lowerbound);
-	int getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound);
+	int getTravelTime(int end,int direction, const ConstraintTable& constraint_table, int upper_bound);
 
 	string getName() const { return "SIPP"; }
 

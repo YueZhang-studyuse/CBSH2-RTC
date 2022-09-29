@@ -12,6 +12,9 @@ enum conflict_priority { CARDINAL, SEMI, NON, UNKNOWN, PRIORITY_COUNT };
 enum constraint_type { LEQLENGTH, GLENGTH, RANGE, BARRIER, VERTEX, EDGE, 
 											POSITIVE_VERTEX, POSITIVE_EDGE, POSITIVE_BARRIER, POSITIVE_RANGE };
 
+
+enum conflict_prune_priority {FULL_PRUNED, HALF_PRUNED, SEEN, NEW};
+
 // enum conflict_selection {RANDOM, EARLIEST, CONFLICTS, MCONSTRAINTS, FCONSTRAINTS, WIDTH, SINGLETONS, AGENTID};
 
 typedef std::tuple<int, int, int, int, constraint_type> Constraint;
@@ -27,24 +30,92 @@ typedef std::tuple<int, int, int, int, constraint_type> Constraint;
 // The following is used by for generating the hash value of a constraint
 struct ConstraintHasher
 {
-	size_t operator()(const Constraint& c) const
+	size_t operator()(const list<Constraint> node_constraints) const
+	//size_t operator()(Constraint con) const
 	{
-		size_t cons_hash = 3 * std::hash<int>()(std::get<0>(c)) +
-									 5 * std::hash<int>()(std::get<1>(c)) +
-									 7 * std::hash<int>()(std::get<2>(c)) +
-									 11 * std::hash<int>()(std::get<3>(c));
+		size_t cons_hash = 0;
+		for (auto con: node_constraints)
+		{
+			cons_hash += 3 * std::hash<int>()(std::get<0>(con)) +
+						 5 * std::hash<int>()(std::get<1>(con)) +
+						 7 * std::hash<int>()(std::get<2>(con)) +
+						 11 * std::hash<int>()(std::get<3>(con));
+		}
 		return cons_hash;
 	}
+
+	// size_t operator()(Constraint con) const
+	// {
+	// 	size_t cons_hash = 0;
+	// 	// for (auto con: node_constraints)
+	// 	// {
+	// 		cons_hash += 3 * std::hash<int>()(std::get<0>(con)) +
+	// 					 5 * std::hash<int>()(std::get<1>(con)) +
+	// 					 7 * std::hash<int>()(std::get<2>(con)) +
+	// 					 11 * std::hash<int>()(std::get<3>(con));
+	// 	//}
+	// 	return cons_hash;
+	// }
 };
 
 // The following is used for checking whether two constraints are equal
 struct eqconstraint
 {
-	bool operator()(const Constraint& c1, const Constraint& c2) const
+	bool operator()(const list<Constraint> c1, const list<Constraint> c2) const
 	{
-		return c1 == c2;
+		if (c1.size() != c2.size())
+		{
+			return false;
+		}
+		
+		if (c1.size() == 1)
+		{
+			return c1.back() == c2.back();
+		}
+
+		std::set<Constraint> cons1, cons2;
+		for (auto constraint: c1)
+		{
+			cons1.insert(constraint);
+		}
+		for (auto constraint: c2)
+		{
+			cons2.insert(constraint);
+		}
+		return equal(cons1.begin(), cons1.end(), cons2.begin(), cons2.end());
+	}
+	// bool operator()(const Constraint c1, const Constraint c2) const
+	// {
+	// 	return (c1 == c2);
+	// }
+};
+
+struct ConstraintHasherSingle
+{
+
+	size_t operator()(Constraint con) const
+	{
+		size_t cons_hash = 0;
+		// for (auto con: node_constraints)
+		// {
+			cons_hash += 3 * std::hash<int>()(std::get<0>(con)) +
+						 5 * std::hash<int>()(std::get<1>(con)) +
+						 7 * std::hash<int>()(std::get<2>(con)) +
+						 11 * std::hash<int>()(std::get<3>(con));
+		//}
+		return cons_hash;
 	}
 };
+
+// The following is used for checking whether two constraints are equal
+struct eqconstraintSingle
+{
+	bool operator()(const Constraint c1, const Constraint c2) const
+	{
+		return (c1 == c2);
+	}
+};
+
 
 
 std::ostream& operator<<(std::ostream& os, const Constraint& constraint);
@@ -60,6 +131,8 @@ public:
 	conflict_type type;
 	conflict_priority priority = conflict_priority::UNKNOWN;
 	double secondary_priority = 0; // used as the tie-breaking criteria for conflict selection
+
+	conflict_prune_priority prune_priority = conflict_prune_priority::NEW;
 
 	//debug for target-follow-up conflict
 	bool target_failed = false;

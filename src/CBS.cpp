@@ -225,25 +225,40 @@ shared_ptr<Conflict> CBS::chooseConflict(const CBSNode& node) const
 	if (screen == 3)
 		printConflicts(node);
 	shared_ptr<Conflict> choose;
-	if (node.conflicts.empty() && node.unknownConf.empty())
-		return nullptr;
-	else if (!node.conflicts.empty())
+	if (!node.single_conflicts.empty())
 	{
-		choose = node.conflicts.back();
-		for (const auto& conflict : node.conflicts)
+		//std::cout<<"test"<<std::endl;
+		choose = node.single_conflicts.back();
+		for (const auto& conflict : node.single_conflicts)
 		{
-			//check proirity
 			if (*choose < *conflict)
+			{
 				choose = conflict;
+			}
 		}
 	}
 	else
 	{
-		choose = node.unknownConf.back();
-		for (const auto& conflict : node.unknownConf)
+		if (node.conflicts.empty() && node.unknownConf.empty())
+			return nullptr;
+		else if (!node.conflicts.empty())
 		{
-			if (*choose < *conflict)
-				choose = conflict;
+			choose = node.conflicts.back();
+			for (const auto& conflict : node.conflicts)
+			{
+				//check proirity
+				if (*choose < *conflict)
+					choose = conflict;
+			}
+		}
+		else
+		{
+			choose = node.unknownConf.back();
+			for (const auto& conflict : node.unknownConf)
+			{
+				if (*choose < *conflict)
+					choose = conflict;
+			}
 		}
 	}
 	return choose;
@@ -269,7 +284,7 @@ void CBS::computePriorityForConflict(Conflict& conflict, const CBSNode& node)
 }
 
 
-void CBS::classifyConflicts(CBSNode& node)
+bool CBS::classifyConflicts(CBSNode& node)
 {
 	// Classify all conflicts in unknownConf
 	while (!node.unknownConf.empty())
@@ -351,6 +366,7 @@ void CBS::classifyConflicts(CBSNode& node)
 			continue;
 		}
 
+
 		// Rectangle reasoning
 		if (rectangle_helper.strategy != rectangle_strategy::NR &&
 			(int) paths[con->a1]->size() > timestep &&
@@ -377,7 +393,6 @@ void CBS::classifyConflicts(CBSNode& node)
 			auto mdd2 = mdd_helper.getMDD(node, a2, paths[a2]->size());
 
 			auto mutex_conflict = mutex_helper.run(paths, a1, a2, node, mdd1, mdd2);
-
 			if (mutex_conflict != nullptr && (*mutex_conflict != *con)) // ignore the cases when mutex finds the same vertex constraints
 			{
 				computePriorityForConflict(*mutex_conflict, node);
@@ -388,11 +403,78 @@ void CBS::classifyConflicts(CBSNode& node)
 
 		computePriorityForConflict(*con, node);
 		node.conflicts.push_back(con);
+
+		if (pruning)
+		{
+			bool child_prune[2] = {false,false}; 
+			shared_ptr<Conflict> check_conflict = node.conflicts.back();
+			list<Constraint> c = check_conflict->constraint1;
+			auto it = global_constraints.find(c);
+			//test
+			//CBSNode* temp;
+			if(it != global_constraints.end())
+			{
+				for (auto n: it->second) //n is the pointer of CBS node
+				{
+					if (node.disjoint_nodes.find(n)!=node.disjoint_nodes.end())
+					{
+						continue;
+					}
+					//1.0 version, find all constraints to already exist nodes, only prune new leaves
+					//if(shouldPrune(child[i],n,*child_constraints))
+					if(shouldPrune(&node,n,c))
+					{
+						child_prune[0]= true;
+						//temp = n;
+						break; // find current constraint shoul prune
+					}
+				}
+			}
+
+			c = check_conflict->constraint2;
+			it = global_constraints.find(c);
+			if(it != global_constraints.end())
+			{
+				for (auto n: it->second) //n is the pointer of CBS node
+				{
+					if (node.disjoint_nodes.find(n)!=node.disjoint_nodes.end())
+					{
+						continue;
+					}
+					//1.0 version, find all constraints to already exist nodes, only prune new leaves
+					//if(shouldPrune(child[i],n,*child_constraints))
+					if(shouldPrune(&node,n,c))
+					{
+						child_prune[1] = true;
+						break; // find current constraint shoul prune
+					}
+				}
+			}
+			if (child_prune[0] && child_prune[1])
+			{
+				return false;
+			}
+			if (child_prune[0])
+			{
+				//std::cout<<"test"<<std::endl;
+				node.single_conflicts.push_back(check_conflict);
+				//node.single_remain_child[check_conflict] = 1;
+				//node.conflicts.pop_back();
+			}
+			if (child_prune[1])
+			{
+				//std::cout<<"test"<<std::endl;
+				node.single_conflicts.push_back(check_conflict);
+				//node.single_remain_child[check_conflict] = 0;
+				//node.conflicts.pop_back();
+			}
+		}
 	}
 
 
 	// remove conflicts that cannot be chosen, to save some memory
 	removeLowPriorityConflicts(node.conflicts);
+	return true;
 }
 
 
@@ -467,6 +549,13 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	node->g_val = parent->g_val;
 	node->makespan = parent->makespan;
 	node->depth = parent->depth + 1;
+
+	node->all_constraints = parent->all_constraints;
+	for (auto c: node->constraints)
+	{
+		node->all_constraints.insert(c);
+	}
+
 	int agent, x, y, t;
 	constraint_type type;
 	assert(node->constraints.size() > 0);
@@ -565,6 +654,31 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	}
 
 	assert(!node->paths.empty());
+
+	//add new info for pruning (path cost)
+	node->path_costs = node->parent->path_costs;
+	node->disjoint_nodes = node->parent->disjoint_nodes;
+	for (auto p: node->paths)
+	{
+		// auto it = node->paths_costs.find(p.first);
+		// if (it != node->paths_costs.end())
+		// {
+		// 	//if (it->second < p.second.size())
+		// 	//{
+		// 		it->second = p.second.size();
+		// 	//}
+		// }
+		// else
+		// {
+		// 	node->paths_costs.insert({p.first,p.second.size()});
+		// }
+		//std::cout<<p.first<<" "<<node->path_costs.size()<<" "<<node->parent->path_costs.size()<<std::endl;
+		node->path_costs[p.first] = p.second.size();
+	}
+	//test
+	node->single_remain_child = node->parent->single_remain_child;
+
+
 	findConflicts(*node);
 	heuristic_helper.computeQuickHeuristics(*node);
 	runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
@@ -807,6 +921,360 @@ string CBS::getSolverName() const
 	return name;
 }
 
+bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2, list<Constraint> c)
+{
+	list<Constraint> pc = n2->pruned_constraint;
+	if(!pc.empty())
+	{
+		for (auto p:pc)
+		{
+			for (auto check:c)
+			{
+				if (p == check)
+				{
+					return false;
+				}
+			}
+			if (n1->all_constraints.find(p) != n1->all_constraints.end())
+			{
+				return false;
+			}
+		}
+	}
+	n2 = n2->parent;
+	for (int i = 0; i < num_of_agents; i++)
+	{
+		if (n2->path_costs[i] > n1->path_costs[i])
+		{
+			return false;
+		}
+	}
+	for (auto constraint: n2->all_constraints)
+	{
+		if (n1->all_constraints.find(constraint) != n1->all_constraints.end())
+		{
+			continue;
+		}
+		int agent, x, y, t;
+		constraint_type type;
+		tie(agent, x, y, t, type) = constraint;
+		//no need for positive constraints --already disjoint, no rundandent
+		if (type == constraint_type::POSITIVE_VERTEX || 
+		type == constraint_type::POSITIVE_EDGE || 
+		type == constraint_type::POSITIVE_BARRIER || 
+		type == constraint_type::POSITIVE_RANGE || 
+		type == constraint_type::GLENGTH || 
+		type ==constraint_type::LEQLENGTH)
+		{
+			n1->disjoint_nodes.insert(n2);
+			n2->disjoint_nodes.insert(n1);
+			return false;
+		}
+		if (type == constraint_type::BARRIER)
+		{
+			auto states = initial_constraints[agent].decodeBarrier(x, y, t); // state = (location, timestep)
+			auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+			for (const auto& state : states)
+			{
+				if (state.second < (int) mdd->levels.size())
+				{
+					for (auto it : mdd->levels[state.second])
+					{
+						if (it->location == state.first) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+						{
+							return false;
+						}
+					}
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+		if (type == constraint_type::RANGE)
+		{
+			//agent not at location x, from time y, to time t
+			auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+			//y = max(search_engines[0]->instance.getManhattanDistance(paths[agent]->front().location,x),0);
+			y = 0;
+			for (int time = t; time >= y; time--)
+			{
+				if (time < (int) mdd->levels.size())
+				{
+					for (auto it : mdd->levels[time])
+					{
+						if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+						{
+							//std::cout<<"prune check "<<x<<std::endl;
+							return false;
+						}
+					}	
+				}
+				else
+				{
+					return false;
+				}
+			}
+			
+		}
+		if (type == constraint_type::VERTEX)
+		{
+			auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+			if (t < (int) mdd->levels.size())
+			{
+				for (auto it : mdd->levels[t])
+				{
+					if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+					{
+						//std::cout<<"prune check "<<x<<std::endl;
+						return false;
+					}
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
+		if (type == constraint_type::EDGE)
+		{
+			auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+			if (t < (int) mdd->levels.size())
+			{
+				for (auto it : mdd->levels[t-1])
+				{
+					if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+					{
+						for (auto child: it->children)
+						{
+							if (child->location == y)
+							{
+								return false;
+							}
+						}
+					}
+				}	
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2)
+{
+	//change to a constraints set to reduce the effort to check
+	//find the start node to check
+	// list<CBSNode*>::iterator it_n1 = n1->ancestors.begin();
+	// list<CBSNode*>::iterator it_n2 = n2->ancestors.begin();
+	// while(it_n1 != n1->ancestors.end() && it_n2 != n2->ancestors.end())
+	// {
+	// 	if (*it_n1 == *it_n2)
+	// 	{
+	// 		it_n1++;
+	// 		it_n2++;
+	// 	}
+	// 	else
+	// 	{
+	// 		break;
+	// 	}
+	// }
+
+	list<Constraint> pc = n2->pruned_constraint; // check if there is already prunned constraint
+	//should check n1's parent contains the solution or not?
+	if(!pc.empty())
+	{
+		// CBSNode* n = n1;
+		// while (n != nullptr)
+		// {
+		// 	for (auto con: n->constraints)
+		// 	{
+		// 		list<Constraint>::iterator constraint_iterator;
+		// 		constraint_iterator = find(pc.begin(),pc.end(),con);
+		// 		if (constraint_iterator != pc.end())
+		// 		{
+		// 			return false;
+			
+		// 		}
+		// 	}
+		//  	n = n->parent;
+		// }	
+
+		//check the already pruned constraint is in n1's constraint
+		for (auto p:pc)
+		{
+			if (n1->all_constraints.find(p) != n1->all_constraints.end())
+			{
+				// n1->disjoint_nodes.insert(n2);
+				// n2->disjoint_nodes.insert(n1);
+				return false;
+			}
+		}
+	}
+	//test for idea
+	n1 = n1->parent;
+	n2 = n2->parent;
+	//check path cost first
+	//for (auto c: n2->path_costs)
+	for (int i = 0; i < num_of_agents; i++)
+	{
+		if (n2->path_costs[i] > n1->path_costs[i])
+		{
+			return false;
+		}
+	}
+	//for (auto c: n2->paths_costs)
+	//for (; it_n2 != n2->ancestors.end(); it_n2++)//version 2.0 search from the different branch instead of from current to root
+	//while (n2 != nullptr)
+	//{
+		//for (auto constraint: n2->constraints)
+		//for (auto constraint: (*it_n2)->constraints)
+		for (auto constraint: n2->all_constraints)
+		{
+			if (n1->all_constraints.find(constraint) != n1->all_constraints.end())
+			{
+				continue;
+			}
+			int agent, x, y, t;
+			constraint_type type;
+			tie(agent, x, y, t, type) = constraint;
+			//no need for positive constraints --already disjoint, no rundandent
+			if (type == constraint_type::POSITIVE_VERTEX || type == constraint_type::POSITIVE_EDGE || type == constraint_type::POSITIVE_BARRIER || type == constraint_type::POSITIVE_RANGE)
+			{
+				return false;
+			}
+			if (type == constraint_type::BARRIER)
+			{
+				auto states = initial_constraints[agent].decodeBarrier(x, y, t); // state = (location, timestep)
+				auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+				for (const auto& state : states)
+				{
+					if (state.second < (int) mdd->levels.size())
+					{
+						for (auto it : mdd->levels[state.second])
+						{
+							if (it->location == state.first) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+							{
+								//std::cout<<"prune check "<<x<<std::endl;
+								return false;
+							}
+						}
+						// if (mdd->level_locations[state.second].find(state.first) != mdd->level_locations[state.second].end())
+						// {
+						// 	return false;
+						// }	
+					}
+					else
+					{
+						return false;
+					}
+					//insert2CT(state.first, state.second, state.second + 1);
+				}
+				//return false;
+			}
+			if (type == constraint_type::GLENGTH)
+			{
+				n1->disjoint_nodes.insert(n2);
+				n2->disjoint_nodes.insert(n1);
+				return false;
+			}
+			if (type == constraint_type::LEQLENGTH)
+			{
+				n1->disjoint_nodes.insert(n2);
+				n2->disjoint_nodes.insert(n1);
+				return false;
+			}
+			if (type == constraint_type::RANGE)
+			{
+				//agent not at location x, from time y, to time t
+				auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+				//y = max(search_engines[0]->instance.getManhattanDistance(paths[agent]->front().location,x),0);
+				y = 0;
+				for (int time = t; time >= y; time--)
+				{
+					if (time < (int) mdd->levels.size())
+					{
+						for (auto it : mdd->levels[time])
+						{
+							if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+							{
+								//std::cout<<"prune check "<<x<<std::endl;
+								return false;
+							}
+						}
+						// if (mdd->level_locations[time].find(x) != mdd->level_locations[time].end())
+						// {
+						// 	return false;
+						// }		
+					}
+					else
+					{
+						return false;
+					}
+				}
+				
+			}
+			if (type == constraint_type::VERTEX)
+			{
+				auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+				if (t < (int) mdd->levels.size())
+				{
+					for (auto it : mdd->levels[t])
+					{
+						if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+						{
+							//std::cout<<"prune check "<<x<<std::endl;
+							return false;
+						}
+					}
+					// if (mdd->level_locations[t].find(x) != mdd->level_locations[t].end())
+					// {
+					// 	return false;
+					// }	
+				}
+				else
+				{
+					return false;
+				}
+			}
+			if (type == constraint_type::EDGE)
+			{
+				auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
+				if (t < (int) mdd->levels.size())
+				{
+					// if (mdd->level_locations[t].find(x) == mdd->level_locations[t].end())
+					// {
+					// 	continue;
+					// }	
+					for (auto it : mdd->levels[t-1])
+					{
+						if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
+						{
+							for (auto child: it->children)
+							{
+								if (child->location == y)
+								{
+									return false;
+								}
+							}
+						}
+					}	
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+		//n2 = n2->parent;
+	//}
+	return true;
+}
+
 bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 {
 	this->min_f_val = _cost_lowerbound;
@@ -842,12 +1310,12 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			break;
 		}
 		//test
-		if (num_HL_expanded >10)
-		{
-			solution_cost = -1;
-			solution_found = false;
-			break;
-		}
+		// if (num_HL_expanded >10)
+		// {
+		// 	solution_cost = -1;
+		// 	solution_found = false;
+		// 	break;
+		// }
 		CBSNode* curr = focal_list.top();
 		focal_list.pop();
 		open_list.erase(curr->open_handle);
@@ -865,48 +1333,16 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			break;
 		}
 
-		// debug
-		/*if (curr->time_generated == 15 && num_of_agents > 2)
-		{
-			int a1 = 51, a2 = 54;
-			auto mdd1 = mdd_helper.getMDD(*curr, a1, paths[a1]->size());
-			cout << "The mdd of agent " << a1 << endl;
-			mdd1->printNodes();
-			auto mdd2 = mdd_helper.getMDD(*curr, a2, paths[a2]->size());
-			cout << "The mdd of agent " << a2 << endl;
-			mdd2->printNodes();
-			for (int t = 0; t < min(paths[a1]->size(), paths[a2]->size()); t++)
-			{
-				if (paths[a1]->at(t).location == paths[a2]->at(t).location)
-					rectangle_helper.printOverlapArea(paths, t, a1, a2, mdd1, mdd2);
-			}
-			cout << "The constraints " << endl;
-			curr->printConstraints(a1);
-			curr->printConstraints(a2);
-		}*/
-		/*if (curr->time_generated == 1 && num_of_agents > 2)
-		{
-			int a1 = 12, a2 = 23;
-			auto mdd1 = mdd_helper.getMDD(*curr, a1, paths[a1]->size());
-			cout << "The mdd of agent " << a1 << endl;
-			mdd1->printNodes();
-			auto mdd2 = mdd_helper.getMDD(*curr, a2, paths[a2]->size());
-			cout << "The mdd of agent " << a2 << endl;
-			mdd2->printNodes();
-			for (int t = 0; t < min(paths[a1]->size(), paths[a2]->size()); t++)
-			{
-				if (paths[a1]->at(t).location == paths[a2]->at(t).location)
-					rectangle_helper.printOverlapArea(paths, t, a1, a2, mdd1, mdd2);
-			}
-			cout << "The constraints " << endl;
-			curr->printConstraints(a1);
-			curr->printConstraints(a2);
-		}*/
-
 		if (!curr->h_computed) // heuristics has not been computed yet
 		{
 			if (PC) // prioritize conflicts
-				classifyConflicts(*curr);
+			{
+				bool no_pruned = classifyConflicts(*curr);
+				if (!no_pruned)
+				{
+					continue;
+				}
+			}
 			runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
 			bool succ = heuristic_helper.computeInformedHeuristics(*curr, time_limit - runtime);
 			runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
@@ -1018,7 +1454,7 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 
 			bool solved[2] = { false, false };
 			vector<vector<PathEntry>*> copy(paths);
-
+			bool pruned[2] = { false, false };
 			//test
 			// bool solved_by_one = false;
 			// int new_conflicts = 0;
@@ -1028,55 +1464,110 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				if (i > 0)
 					paths = copy;
 				solved[i] = generateChild(child[i], curr);
-				if (!solved[i])
+
+				if(pruning && solved[i])
+				{
+					//list<Constraint>::iterator child_constraints;
+					// //if all constraints should prune, than prune it. -just check, not inset to global constraint table yet
+					// for (child_constraints = child[i]->constraints.begin(); child_constraints!=child[i]->constraints.end(); child_constraints++)
+					// {
+						//bool find_not_pruned = false;
+						//auto it = global_constraints.find(*child_constraints);
+						auto it = global_constraints.find(child[i]->constraints);
+						if(it != global_constraints.end())
+						{
+							//write the prunned here
+							//check each item of the list to see if there is need to prune
+							//test
+							// if (!find_not_pruned)
+							// {
+								for (auto n: it->second) //n is the pointer of CBS node
+								{
+									if (child[i]->disjoint_nodes.find(n)!=child[i]->disjoint_nodes.end())
+									{
+										continue;
+									}
+									//1.0 version, find all constraints to already exist nodes, only prune new leaves
+									//if(shouldPrune(child[i],n,*child_constraints))
+									if(shouldPrune(child[i],n))
+									{
+										pruned[i] = true;
+										//temp_pruned.push_back(*child_constraints);
+										if (screen > 1)
+										{
+											cout << "		Prune " << *child[i] <<" by Node "<<*n << endl;
+										}
+
+										// //test
+										// if(child[i]->constraints.size() == 1 && n->constraints.size()>1)
+										// {
+										// 	prune_count++;
+										// }
+										//p_node[i] = n;
+
+										break; // find current constraint shoul prune
+									}
+									// if(n->conflict == nullptr)
+									// {
+									// 	if(shouldPrune(n,child[i]))
+									// 	{
+									// 		n->pruned = true;
+									// 		//it->second.remove(n);
+									// 	}
+									// }
+								}
+							//}
+							if (!pruned[i])
+							{
+								//it->second.push_back(child[i]);
+								pruned[i] = false;
+								//find_not_pruned = true;
+								//test
+								//break;
+							}
+							// if (pruned[i])
+							// {
+							// 	break;
+							// }
+							//continue;
+							// if (pruned[i])
+							// {
+							// 	break;
+							// }
+						}
+						else //new constraint no need to prunned
+						{
+							//list<CBSNode*> node;
+							//node.push_back(child[i]);
+							//global_constraints.insert({*child_constraints,node});
+							pruned[i] = false;
+							//find_not_pruned = true;
+							//break;
+						}
+					//}
+					if(pruned[i])
+					{
+						// for (auto c: child[i]->constraints)
+						// {
+						// 	//num_pruned_child++;
+						// 	curr->pruned_constraint.push_back(c);
+						// }
+						//prune_count++;
+						continue;
+					}
+					// }
+				}   
+				if (!solved[i] || pruned[i])
 				{
 					delete child[i];
 					continue;
 				}
-			// 	//debug for target
-			// 	else if (previous_number_of_conflict != -1 && !solved_by_one)
-			// 	{
-			// 		int current_conflict = 0;
-			// 		int a1 = curr->conflict->a1;
-			// 		int a2 = curr->conflict->a2;
-			// 		size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
-			// 		for (size_t timestep = 0; timestep < min_path_length; timestep++)
-			// 		{
-			// 			int loc1 = paths[a1]->at(timestep).location;
-			// 			int loc2 = paths[a2]->at(timestep).location;
-			// 			if (loc1 == loc2)
-			// 			{
-			// 				current_conflict++;
-			// 			}
-			// 		}
-			// 		if(current_conflict > previous_number_of_conflict)
-			// 		{
-			// 			// if (current_conflict-previous_number_of_conflict >4)
-			// 			// {
-			// 			// 	printPaths();
-			// 			// 	return false;
-			// 			// }
-			// 			if(new_conflicts!=0)
-			// 			{
-			// 				if (current_conflict-previous_number_of_conflict < new_conflicts)
-			// 				{
-			// 					new_conflicts=current_conflict-previous_number_of_conflict;
-			// 				}
-			// 			}else
-			// 			{
-			// 				new_conflicts=current_conflict-previous_number_of_conflict;
-			// 			}
-			// 			//target_failed++;
-			// 		}else{
-			// 			solved_by_one = true;
-			// 		}
-			// 	}
-				//printPaths();
+				
 				if (child[i]->g_val + child[i]->h_val == min_f_val && curr->unknownConf.size() + curr->conflicts.size() == 0) //no conflicts
 				{// found a solution (and finish the while look)
 					break;
 				}
-				else if (bypass && child[i]->g_val == curr->g_val && child[i]->tie_breaking < curr->tie_breaking) // Bypass1
+				else if (bypass && child[i]->g_val == curr->g_val && child[i]->tie_breaking < curr->tie_breaking && !pruned[i])  // Bypass1
 				{
 					if (i == 1 && !solved[0])
 						continue;
@@ -1086,6 +1577,8 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 					curr->unknownConf = child[i]->unknownConf;
 					curr->tie_breaking = child[i]->tie_breaking;
 					curr->conflict = nullptr;
+					curr->path_costs = child[i]->path_costs;
+
 					for (const auto& path : child[i]->paths) // update paths
 					{
 						auto p = curr->paths.begin();
@@ -1124,15 +1617,73 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 					delete i;
 					i = nullptr;
 				}
+				
                 if (PC) // prioritize conflicts
-                    classifyConflicts(*curr); // classify the new-detected conflicts
+				{
+					bool no_pruned = classifyConflicts(*curr); // classify the new-detected conflicts
+					if (!no_pruned)
+					{
+						break;
+					}
+				}
+                
 			}
 			else
 			{
+				int child_pruned = 0;
 				for (int i = 0; i < 2; i++)
 				{
-					if (solved[i])
+					// if(pruned[i])
+					// {
+					// 	//std::cout<<"test3"<<std::endl;
+					// 	child_pruned++;
+					// 	for (auto c: child[i]->constraints)
+					// 	{
+					// 		//num_pruned_child++;
+					// 		curr->pruned_constraint.push_back(c);
+					// 	}
+					// 	//delete child[i];
+					// 	continue;
+					// }	
+					if (solved[i] && pruned[i])
 					{
+						for (auto c: child[i]->constraints)
+						{
+							//num_pruned_child++;
+							curr->pruned_constraint.push_back(c);
+							child_pruned++;
+						}
+						//delete child[i];
+					}
+					if (solved[i] && !pruned[i])
+					{	//if not pruned we insert the node with constraints to global constraint table
+						//list<Constraint>::iterator child_constraints;
+						//if all constraints should prune, than prune it.
+						if (pruning)
+						{
+							// for (child_constraints = child[i]->constraints.begin(); child_constraints!=child[i]->constraints.end(); child_constraints++)
+							// {
+								auto it = global_constraints.find(child[i]->constraints);
+								//auto it = global_constraints.find(*child_constraints);
+								if(it != global_constraints.end())
+								{
+									it->second.push_back(child[i]);
+								}
+								else //new constraint no need to prunned
+								{
+									list<CBSNode*> node;
+									node.push_back(child[i]);
+									global_constraints.insert({child[i]->constraints,node});
+									//global_constraints.insert({(*child_constraints),node});
+								}
+							//}
+							if (i == 1 && !pruned[0] && !pruned[1] && curr->conflict->type == conflict_type::TARGET && solved[0])
+							{
+								child[0]->disjoint_nodes.insert(child[1]);
+								child[1]->disjoint_nodes.insert(child[0]);
+							}
+						}
+						
 						pushNode(child[i]);
 						if (screen > 1)
 						{
@@ -1140,6 +1691,30 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 						}
 					}
 				}
+				//try make the prune as disjoint
+				if (child_pruned == 1)
+				{
+					//num_HLG_single_pruned++;
+				}
+				if (child_pruned == 2)
+				{
+					//num_HLG_full_pruned++;
+					//curr->conflict->prune_priority = conflict_prune_priority::FULL_PRUNED;
+					//curr->full_pruned = true;
+					//curr->conflict->full_pruned++;
+				}
+				//else if (child_pruned == 1)
+				// {
+				// 	//if (curr->conflict->prune_priority != conflict_prune_priority::FULL_PRUNED)
+				//  		curr->conflict->prune_priority = conflict_prune_priority::HALF_PRUNED;
+				// 	//curr->conflict->half_pruned++;
+				// }
+				// else
+				// {
+				// 	//if (curr->conflict->prune_priority != conflict_prune_priority::FULL_PRUNED && curr->conflict->prune_priority != conflict_prune_priority::HALF_PRUNED)
+				  		curr->conflict->prune_priority = conflict_prune_priority::SEEN;
+				// 	//curr->conflict->seen++;
+				// }
 			}
 		}
 		if (curr->conflict != nullptr)
@@ -1247,6 +1822,7 @@ bool CBS::generateRoot()
 	dummy_start = new CBSNode();
 	dummy_start->g_val = 0;
 	paths.resize(num_of_agents, nullptr);
+	dummy_start->path_costs.resize(num_of_agents);
 
 	mdd_helper.init(num_of_agents);
 	heuristic_helper.init();
@@ -1282,6 +1858,7 @@ bool CBS::generateRoot()
 				return false;
 			}
 			paths[i] = &paths_found_initially[i];
+			dummy_start->path_costs[i] = paths[i]->size();
 			dummy_start->makespan = max(dummy_start->makespan, paths_found_initially[i].size() - 1);
 			dummy_start->g_val += (int) paths_found_initially[i].size() - 1;
 			num_LL_expanded += search_engines[i]->num_expanded;
@@ -1295,6 +1872,7 @@ bool CBS::generateRoot()
 			paths[i] = &paths_found_initially[i];
 			dummy_start->makespan = max(dummy_start->makespan, paths_found_initially[i].size() - 1);
 			dummy_start->g_val += (int) paths_found_initially[i].size() - 1;
+			dummy_start->path_costs[i] = paths[i]->size();
 		}
 	}
 

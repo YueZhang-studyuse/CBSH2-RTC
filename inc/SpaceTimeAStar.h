@@ -79,6 +79,7 @@ public:
 				  const vector<Path*>& paths, int agent, int lower_bound);
 
 	int getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound);
+	int getTravelTime(int end, int direction, int block_direcion,int block_timestep, const ConstraintTable& constraint_table, int upper_bound);
 
 	string getName() const { return "AStar"; }
 

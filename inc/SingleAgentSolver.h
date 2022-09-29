@@ -44,6 +44,7 @@ public:
 					// 	}
 					// }
 					return rand() % 2;
+					//return 0;
 				}
 				return n1->h_val >= n2->h_val;
 			}
@@ -76,6 +77,7 @@ public:
 					// 	}
 					// }
 					return rand() % 2 == 0;
+					return 0;
 				}
 				return n1->g_val <= n2->g_val;  // break ties towards larger g_vals
 			}
@@ -125,6 +127,11 @@ public:
 		return instance.getManhattanDistance(from, to);
 		//max(get_DH_heuristic(from, to), instance.getManhattanDistance(from, to));
 	}
+	int compute_heuristic(int from,int from_direc, int to, int to_direct) const  // compute admissible heuristic between two locations
+	{
+		return max(get_DH_heuristic(from,from_direc, to,to_direct), instance.getManhattanDistance(from, to));
+		//max(get_DH_heuristic(from, to), instance.getManhattanDistance(from, to));
+	}
 	const Instance& instance;
 
 	virtual Path findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
@@ -163,5 +170,6 @@ public:
 protected:
 	void compute_heuristics();
 	int get_DH_heuristic(int from, int to) const { return abs(my_heuristic[from] - my_heuristic[to]); }
+	int get_DH_heuristic(int from, int from_direct, int to, int to_direct) const { return abs(my_heuristic[from*4+from_direct] - my_heuristic[to*4+to_direct]); }
 };
 

@@ -93,19 +93,38 @@ std::ostream& operator<<(std::ostream& os, const Conflict& conflict)
 // For all the values below, smaller is better
 bool operator<(const Conflict& conflict1, const Conflict& conflict2) // return true if conflict2 has higher priority
 {
-	if (conflict1.priority == conflict2.priority)
+	if (conflict1.prune_priority == conflict2.prune_priority)
 	{
-		if (conflict1.type == conflict2.type)
+		if (conflict1.priority == conflict2.priority)
 		{
-			if (conflict1.secondary_priority == conflict2.secondary_priority)
+			if (conflict1.type == conflict2.type)
 			{
-				return rand() % 2;
+				if (conflict1.secondary_priority == conflict2.secondary_priority)
+				{
+					return rand() % 2;
+				}
+				return conflict1.secondary_priority > conflict2.secondary_priority;
 			}
-			return conflict1.secondary_priority > conflict2.secondary_priority;
+			return conflict1.type > conflict2.type;
 		}
-		return conflict1.type > conflict2.type;
+		return conflict1.priority > conflict2.priority;
 	}
-	return conflict1.priority > conflict2.priority;
+	return conflict1.prune_priority > conflict2.prune_priority;
+	// if (conflict1.priority == conflict2.priority)
+	// {
+	// 	if (conflict1.type == conflict2.type)
+	// 	// || (conflict1.priority != conflict_priority::CARDINAL && conflict1.type == conflict_type::RECTANGLE && conflict2.type == conflict_type::STANDARD) || (conflict1.priority != conflict_priority::CARDINAL && conflict2.type == conflict_type::RECTANGLE && conflict1.type == conflict_type::STANDARD))
+	// 	{
+	// 		if (conflict1.secondary_priority == conflict2.secondary_priority)
+	// 		{
+	// 			//return rand() % 2;
+	// 			return 0;
+	// 		}
+	// 		return conflict1.secondary_priority > conflict2.secondary_priority;
+	// 	}
+	// 	return conflict1.type > conflict2.type;
+	// }
+	// return conflict1.priority > conflict2.priority;
 }
 
 bool operator == (const Conflict& conflict1, const Conflict& conflict2)
