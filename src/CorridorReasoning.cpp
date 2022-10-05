@@ -199,7 +199,7 @@ shared_ptr<Conflict> CorridorReasoning::findPseudoCorridorConflict(const shared_
 		//find the corridor near the t-3/t+3 of the current conflict
 		endpoint1 = loc1;
 		endpoint2 = loc1;
-		for (int t = 1; t <= 3; t++)
+		for (int t = 1; t <= 2; t++)
 		{
 			if (timestep - t < 0 || paths[conflict->a1]->size() <= timestep+t || paths[conflict->a2]->size() <= timestep + t)
 			{
@@ -291,6 +291,7 @@ shared_ptr<Conflict> CorridorReasoning::findPseudoCorridorConflict(const shared_
 			paths[conflict->a2]->at(timestep - t).location == paths[conflict->a2]->at(timestep - t - 1).location )
 			{
 				continue;
+				//break;
 			}
 			endpoint1 = paths[conflict->a1]->at(timestep + t).location;
 			endpoint2 = paths[conflict->a1]->at(timestep - t - 1).location;
@@ -314,16 +315,20 @@ shared_ptr<Conflict> CorridorReasoning::findPseudoCorridorConflict(const shared_
 	if (t[1] + c_length < lowerbound1)
 		return nullptr;
 	//need to block the corridor for given time step
+	int block_time = c_length;
+	// if (block_time > 4)
+	// {
+	// 	block_time = 4;
+	// }
 	if (loc2 < 0)
 	{
-		ct1.insert2CT(loc1, timestep, timestep+c_length); // block the conflict location
-		ct2.insert2CT(loc1, timestep, timestep+c_length); // block the conflict location
+		ct1.insert2CT(loc1, timestep, block_time); // block the conflict location
+		ct2.insert2CT(loc1, timestep, block_time); // block the conflict location
 	}
-		
 	else
 	{
-		ct1.insert2CT(loc1, loc2, timestep, timestep+c_length);
-		ct2.insert2CT(loc2, loc1, timestep, timestep+c_length);
+		ct1.insert2CT(loc1, loc2, timestep, block_time);
+		ct2.insert2CT(loc2, loc1, timestep, block_time);
 	}
 		
 	//rotation: is it correct to only block the entry point?
@@ -335,8 +340,8 @@ shared_ptr<Conflict> CorridorReasoning::findPseudoCorridorConflict(const shared_
 	tprime[1] = search_engines[conflict->a2]->getTravelTime(endpoint2, -1,  ct2, t[0] + c_length  + 1);
 	if (tprime[1] - 1 < lowerbound2)
 		return nullptr;
-	int t1 = std::min(tprime[0] - 1, t[1] + c_length );
-	int t2 = std::min(tprime[1] - 1, t[0] + c_length );
+	int t1 = std::min(tprime[0] - 1, t[1] + c_length);
+	int t2 = std::min(tprime[1] - 1, t[0] + c_length);
 	//auto t = make_pair(t1, t2);
 	//end here
 	// auto t = getTimeRanges(conflict->a1, conflict->a2, endpoint1, endpoint2, endpoint2, endpoint1,
@@ -373,7 +378,7 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorTargetConflict(const shared_
 	int goal_time[2] = { -1, -1 };
 	//entrying direction
 	int corridor_front_direc = get_corridor_direction(corridor[1] - corridor.front());
-	int corridor_back_direc = get_corridor_direction(corridor[1] - corridor.back());
+	int corridor_back_direc = get_corridor_direction(corridor[corridor.size()-2] - corridor.back());
 
 	//also need entry direction and exit direction for two agents
 	//int entry_direction[2] = {-1,-1};
@@ -445,7 +450,9 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorTargetConflict(const shared_
 
 
 	if (goal[0] >= 0 || goal[1] >= 0) // The goal location of one of the agents are inside the corridor
-	{ // the is a corridor-target conflict no matter the two agents move in the same direction or not
+	{ 
+		//return nullptr;
+		// the is a corridor-target conflict no matter the two agents move in the same direction or not
 		int middle_agent = (goal[0] >= 0) ? 0 : 1; // will add length constraints to this agent 
 		if (start[1] == goal[1] && start[1] >= 0)  // if the start and goal locations of one agent are both (and, of course, inside the corridor). 
 			middle_agent = 1; // We prioritize this agent to be the middle agent //both start and goal are inside corridor
@@ -455,37 +462,7 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorTargetConflict(const shared_
 		ct1_back.build(node, a[middle_agent]);
 		ConstraintTable ct2(initial_constraints[a[1 - middle_agent]]);
 		ct2.build(node, a[1 - middle_agent]);
-		//we need to distinguish between different situations
-		//general version: for each end point, we get travel time for middle agent by entering vs entering with bypass (block the corridor)
-		//for the other agent, we calculate leave and enter 
-		//current include, 1 goal, 0 start inside corridor, 2 goal, 0 start inside corridor, 1goal, 1 same start inside corridor
-		//if (start[1-middle_agent] < 0)
-		//a[middle_agent] enter corridor from corridor front
-		//we need to know the begin end point for middle agent
-		// int middle_agent_begin = corridor.front();
-		// int middle_agent_end = corridor.back();
-		// int middle_begin_direction = corridor_front_direc;
-		// int middle_end_direction = corridor_back_direc;
-		// int dir = 1;
-		// int goal_time_without_dir = goal[middle_agent];
-		// int goal_time_without_dir_back = corridor_length-goal[middle_agent];
-		// if (entry[middle_agent] != 0)
-		// {
-		// 	middle_agent_begin = corridor.back();
-		// 	middle_agent_end = corridor.front();
-		// 	middle_begin_direction = corridor_back_direc;
-		// 	middle_end_direction = corridor_front_direc;
-		// 	dir = -1;
-		// 	goal_time_without_dir = corridor_length-goal[middle_agent];
-		// 	goal_time_without_dir_back = goal[middle_agent];
-		// }
-		//a1 enter corridor from begin
-		// auto t1 = search_engines[a[middle_agent]]->getTravelTime(middle_agent_begin,middle_begin_direction, ct1, MAX_TIMESTEP) - 1;
-		// auto t2 = search_engines[a[1 - middle_agent]]->getTravelTime(middle_agent_begin,-1, ct2, MAX_TIMESTEP) + 1;
-		// auto reach_goal_direct = get_corridor_direction(corridor[goal[middle_agent]]-corridor[goal[middle_agent]-dir]);
-		// auto goal_time_with_dir = goal_time_without_dir + abs(reach_goal_direct-paths[a[middle_agent]]->back().direction)%2;
-		// auto l1 = max(t1,t2) + goal_time_with_dir;
-
+		
 		auto t1 = search_engines[a[middle_agent]]->getTravelTime(corridor.front(),corridor_front_direc, ct1, MAX_TIMESTEP) - 1 + 2;
 		ct1.insert2CT(corridor.front(), corridor[1], 0, MAX_TIMESTEP); // block the corridor in both directions
 		ct1.insert2CT(corridor[1],corridor.front(), 0, MAX_TIMESTEP);
@@ -498,8 +475,12 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorTargetConflict(const shared_
 		else //a2 enter in corridor back, so we calculate the leaving time
 			t2 = search_engines[a[1 - middle_agent]]->getTravelTime(corridor.front(),-1, ct2, MAX_TIMESTEP) + 1;
 		auto reach_goal_direct = get_corridor_direction(corridor[goal[middle_agent]]-corridor[goal[middle_agent]-1]);
-		auto goal_time_with_dir = goal[middle_agent] + abs(reach_goal_direct-paths[a[middle_agent]]->back().direction)%2;
+		auto goal_time_with_dir = goal[middle_agent] + abs(reach_goal_direct-paths[a[middle_agent]]->back().direction)%3;
 		auto l1 = max(t1,t2) + goal_time_with_dir;
+
+		auto ll1 = l1;
+		auto tt1 = t1;
+		auto tt2 = t2;
 
 		//a1 enter from corridor from end
 		//first do not consider bypass
@@ -518,14 +499,14 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorTargetConflict(const shared_
 		// C1.emplace_back(a[middle_agent], corridor[goal[middle_agent]], -1, l1, constraint_type::GLENGTH);
 		// C2.emplace_back(a[middle_agent], corridor[goal[middle_agent]], -1, l1, constraint_type::LEQLENGTH);
 
-		t1 = search_engines[a[middle_agent]]->getTravelTime(corridor.back(), corridor_back_direc, ct1_back, l1 - corridor_length + goal_time_with_dir) - 1 + 2;
+		t1 = search_engines[a[middle_agent]]->getTravelTime(corridor.back(), corridor_back_direc, ct1_back, l1 - corridor_length + goal_time_with_dir) - 1 + 1;
 		ct1_back.insert2CT(corridor.back(),corridor[corridor.size()-2], 0, MAX_TIMESTEP); // block the corridor in both directions
 		ct1_back.insert2CT(corridor[corridor.size()-2], corridor.back(), 0, MAX_TIMESTEP);
 		t1_bypass = search_engines[a[middle_agent]]->getTravelTime(corridor.back(), corridor_back_direc, ct1_back, MAX_TIMESTEP) - 1;
 		if (t1_bypass < t1)
 			t1 = t1_bypass;
 		reach_goal_direct = get_corridor_direction(corridor[goal[middle_agent]]-corridor[goal[middle_agent]+1]);
-		goal_time_with_dir = corridor_length-goal_time[middle_agent] + abs(reach_goal_direct-paths[a[middle_agent]]->back().direction)%2;
+		goal_time_with_dir = corridor_length-goal[middle_agent] + abs(reach_goal_direct-paths[a[middle_agent]]->back().direction)%3;
 		if (entry[a[1-middle_agent]] == (int)corridor.size() - 1)
 			t2 = search_engines[a[1 - middle_agent]]->getTravelTime(corridor.back(), corridor_back_direc, ct2, l1 - corridor_length + goal_time_with_dir);
 		else
