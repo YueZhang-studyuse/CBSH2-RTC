@@ -22,17 +22,20 @@ std::pair<con_vec, con_vec> IPMutexPropagation::gen_constraints()
 	cp.init_mutex();
 	cp.fwd_mutex_prop();
 
+
 	bool found_solution = false;
 
 	// set len to sum of two agent's current length;
+	//testing
 	int inc_len = 0;
+	//final_len_0 = max(inc_len - 1, 0);
+	//final_len_1 = max(inc_len - 1, 0);
+	//return cp.generate_constraints(init_len_0 + max(inc_len - 1, -1), init_len_1 + max(inc_len - 1, -1));
 	// cout << cp._feasible(init_len_0 - 1, init_len_1 -1) << endl;
-
 	while (!found_solution)
 	{
 		MDD_0->increaseBy(cons_0, 1, search_engine_0);
 		MDD_1->increaseBy(cons_1, 1, search_engine_1);
-
 		cp.init_mutex();
 		cp.fwd_mutex_prop();
 
@@ -47,6 +50,7 @@ std::pair<con_vec, con_vec> IPMutexPropagation::gen_constraints()
 
 		inc_len += 1;
 
+		//feasible == true means no feasible path current, feasible == false means has feasible path
 		if (!cp.feasible(init_len_0 + inc_len - 1, init_len_1 + inc_len - 1))
 		{
 			// TODO more greedy ...

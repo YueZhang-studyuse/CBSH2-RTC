@@ -286,6 +286,7 @@ void CBS::computePriorityForConflict(Conflict& conflict, const CBSNode& node)
 
 bool CBS::classifyConflicts(CBSNode& node)
 {
+	//std::cout<<"test3"<<std::endl;
 	// Classify all conflicts in unknownConf
 	while (!node.unknownConf.empty())
 	{
@@ -296,7 +297,7 @@ bool CBS::classifyConflicts(CBSNode& node)
 		tie(a, loc1, loc2, timestep, type) = con->constraint1.back();
 		node.unknownConf.pop_front();
 
-
+		//std::cout<<"test31"<<std::endl;
 		bool cardinal1 = false, cardinal2 = false;
 		if (timestep >= (int) paths[a1]->size())
 			cardinal1 = true;
@@ -348,6 +349,8 @@ bool CBS::classifyConflicts(CBSNode& node)
 			con->priority = conflict_priority::NON;
 		}
 
+		//std::cout<<"test32"<<std::endl;
+
 		// Corridor reasoning
 		auto corridor = corridor_helper.run(con, paths, node);
 		if (corridor != nullptr)
@@ -358,6 +361,8 @@ bool CBS::classifyConflicts(CBSNode& node)
 			continue;
 		}
 
+		//std::cout<<"test33"<<std::endl;
+
 		// Target Reasoning
 		if (con->type == conflict_type::TARGET)
 		{
@@ -365,6 +370,8 @@ bool CBS::classifyConflicts(CBSNode& node)
 			node.conflicts.push_back(con);
 			continue;
 		}
+
+		//std::cout<<"test34"<<std::endl;
 
 
 		// Rectangle reasoning
@@ -384,7 +391,6 @@ bool CBS::classifyConflicts(CBSNode& node)
 				continue;
 			}
 		}
-
 		// Mutex reasoning
 		if (mutex_reasoning)
 		{
@@ -406,6 +412,7 @@ bool CBS::classifyConflicts(CBSNode& node)
 
 		if (pruning)
 		{
+			//std::cout<<"test21"<<std::endl;
 			bool child_prune[2] = {false,false}; 
 			shared_ptr<Conflict> check_conflict = node.conflicts.back();
 			list<Constraint> c = check_conflict->constraint1;
@@ -468,6 +475,8 @@ bool CBS::classifyConflicts(CBSNode& node)
 				//node.single_remain_child[check_conflict] = 0;
 				//node.conflicts.pop_back();
 			}
+
+			//std::cout<<"test22"<<std::endl;
 		}
 	}
 
@@ -513,6 +522,7 @@ void CBS::removeLowPriorityConflicts(list<shared_ptr<Conflict>>& conflicts) cons
 
 bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 {
+	//std::cout<<"d221"<<std::endl;
 	clock_t t = clock();
 	// build reservation table
 	// CAT cat(node->makespan + 1);  // initialized to false
@@ -531,8 +541,8 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 		node->g_val = node->g_val - (int) paths[ag]->size() + (int) new_path.size();
 		paths[ag] = &node->paths.back().second;
 		node->makespan = max(node->makespan, new_path.size() - 1);
-		if (screen == 2)
-			printPaths();
+		// if (screen == 2)
+		// 	printPaths();
 		return true;
 	}
 	else
@@ -544,6 +554,7 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 
 bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 {
+	//std::cout<<"c1"<<std::endl;
 	clock_t t1 = clock();
 	node->parent = parent;
 	node->g_val = parent->g_val;
@@ -555,6 +566,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	{
 		node->all_constraints.insert(c);
 	}
+	//std::cout<<"d1"<<std::endl;
 
 	int agent, x, y, t;
 	constraint_type type;
@@ -644,6 +656,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	}
 	else
 	{
+		//std::cout<<"d21"<<std::endl;
 		int lowerbound = (int) paths[agent]->size() - 1;
 		if (!findPathForSingleAgent(node, agent, lowerbound))
 		{
@@ -652,6 +665,7 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 		}
 		//printPaths();
 	}
+	//std::cout<<"c2"<<std::endl;
 
 	assert(!node->paths.empty());
 
@@ -680,7 +694,9 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 
 
 	findConflicts(*node);
+	//std::cout<<"c3"<<std::endl;
 	heuristic_helper.computeQuickHeuristics(*node);
+	//std::cout<<"c4"<<std::endl;
 	runtime_generate_child += (double) (clock() - t1) / CLOCKS_PER_SEC;
 	return true;
 }
@@ -1333,6 +1349,7 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			break;
 		}
 
+
 		if (!curr->h_computed) // heuristics has not been computed yet
 		{
 			if (PC) // prioritize conflicts
@@ -1369,6 +1386,8 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			continue;
 		}
 
+		//std::cout<<"test2"<<std::endl;
+
 
 
 		//Expand the node
@@ -1386,8 +1405,9 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			}
 			foundBypass = false;
 			CBSNode* child[2] = { new CBSNode(), new CBSNode() };
-
+			//std::cout<<"test choose conflict"<<std::endl;
 			curr->conflict = chooseConflict(*curr);
+			//std::cout<<"test choose conflict 2"<<std::endl;
 
 			if (disjoint_splitting && curr->conflict->type == conflict_type::STANDARD)
 			{
@@ -1458,12 +1478,12 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			//test
 			// bool solved_by_one = false;
 			// int new_conflicts = 0;
-
 			for (int i = 0; i < 2; i++)
 			{
 				if (i > 0)
 					paths = copy;
 				solved[i] = generateChild(child[i], curr);
+				//std::cout<<"c"<<std::endl;
 
 				if(pruning && solved[i])
 				{
@@ -1806,6 +1826,7 @@ CBS::CBS(const Instance& instance, bool sipp, int screen) :
 			search_engines[i] = new SpaceTimeAStar(instance, i);
 
 		initial_constraints[i].goal_location = search_engines[i]->goal_location;
+		initial_constraints[i].goal_direction = search_engines[i]->goal_direction;
 	}
 	runtime_preprocessing = (double) (clock() - t) / CLOCKS_PER_SEC;
 

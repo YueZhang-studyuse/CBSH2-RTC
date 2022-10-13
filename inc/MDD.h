@@ -43,7 +43,7 @@ public:
 
 	bool operator==(const MDDNode& node) const
 	{
-		return (this->location == node.location) && (this->level == node.level);
+		return (this->location == node.location) && (this->direction == node.direction) && (this->level == node.level);
 	}
 
 
@@ -58,15 +58,22 @@ private:
 
 public:
 	vector<list<MDDNode*>> levels; //levels is the mdd tree
+	//location based mdds
+	//vector<list<MDDNode*>> merged_levels; //location based mdd tree
+	//vector<list<MDDNode*>> previous_merged_levels; //location based mdd tree
+	//void mergeLevels();
 
 	bool buildMDD(const ConstraintTable& ct,
 				  int num_of_levels, const SingleAgentSolver* solver);
 	// bool buildMDD(const std::vector <std::list< std::pair<int, int> > >& constraints, int numOfLevels,
 	// 	int start_location, const int* moves_offset, const std::vector<int>& my_heuristic, int map_size, int num_col);
 	void printNodes() const;
-	MDDNode* find(int location, int level) const;
+	void printMergedNodes() const;
+	MDDNode* find(int location, int direction, int level) const;
 	void deleteNode(MDDNode* node);
 	void clear();
+	//void clearMergedMdd();
+	//void updateMergedMdd();
 	// bool isConstrained(int curr_id, int next_id, int next_timestep, const std::vector< std::list< std::pair<int, int> > >& cons) const;
 
 	void increaseBy(const ConstraintTable& ct, int dLevel, SingleAgentSolver* solver);
@@ -110,7 +117,7 @@ public:
 
 	bool operator==(const SyncMDDNode& node) const
 	{
-		return (this->location == node.location);
+		return (this->location == node.location && this->direction == node.direction);
 	}
 
 
@@ -126,7 +133,7 @@ class SyncMDD
 public:
 	vector<list<SyncMDDNode*>> levels;
 
-	SyncMDDNode* find(int location, int level) const;
+	SyncMDDNode* find(int location, int direction, int level) const;
 	void deleteNode(SyncMDDNode* node, int level);
 	void clear();
 
@@ -167,4 +174,6 @@ private:
 };
 
 //vector<MDDNode*> collectMDDlevel(MDD* mdd, int i);
-unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i);
+//unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i);
+unordered_map<int, MDDNode*> collectRawMDDlevel(MDD* mdd, int i);
+unordered_map<int, list<MDDNode*>> collectMDDlevel(MDD* mdd, int i);

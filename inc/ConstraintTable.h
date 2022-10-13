@@ -10,6 +10,7 @@ public:
 	int length_min = 0;
 	int length_max = MAX_TIMESTEP;
 	int goal_location;
+	int goal_direction;
 	int latest_timestep = 0; // No negative constraints after this timestep.
 	size_t num_col;
 	size_t map_size;
@@ -21,6 +22,11 @@ public:
 
 	bool constrained(size_t loc, int t) const;
 	bool constrained(size_t curr_loc, size_t next_loc, int next_t) const;
+
+	bool vertex_direct_constrained(size_t loc,int direct, int t) const;
+	void insertDirectVertex2CT(size_t loc,int direct, int t_min, int t_max);
+
+
 	int getNumOfConflictsForStep(size_t curr_id, size_t next_id, int next_timestep) const;
 	size_t getNumOfPositiveConstraintSets() const {return positive_constraint_sets.size(); }
 	bool updateUnsatisfiedPositiveConstraintSet(const list<int>& old_set, list<int>& new_set, int location, int timestep) const;
@@ -41,6 +47,9 @@ public:
 protected:
 	// Constraint Table (CT)
 	unordered_map<size_t, list<pair<int, int> > > ct; // location -> time range, or edge -> time range
+
+	//test for direct vertex
+	unordered_map<size_t, list<pair<int,int>>> direct_ct; //map key is location*4+direction
 
 	unordered_map<size_t, size_t> landmarks; // <timestep, location>: the agent must be at the given location at the given timestep
 

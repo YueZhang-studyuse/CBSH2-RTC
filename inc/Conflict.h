@@ -10,7 +10,7 @@ enum conflict_priority { CARDINAL, SEMI, NON, UNKNOWN, PRIORITY_COUNT };
 // We prioritize them over normal semi-/non-caridnal conflicts 
 
 enum constraint_type { LEQLENGTH, GLENGTH, RANGE, BARRIER, VERTEX, EDGE, 
-											POSITIVE_VERTEX, POSITIVE_EDGE, POSITIVE_BARRIER, POSITIVE_RANGE };
+											POSITIVE_VERTEX, POSITIVE_EDGE, POSITIVE_BARRIER, POSITIVE_RANGE, DIRECT_VERTEX};
 
 
 enum conflict_prune_priority {FULL_PRUNED, HALF_PRUNED, SEEN, NEW};
@@ -25,6 +25,8 @@ typedef std::tuple<int, int, int, int, constraint_type> Constraint;
 // <agent, loc, t1, t2, CORRIDOR> 
 // <agent, loc, -1, t, LEQLENGTH>: path of agent_id should be of length at most t, and any other agent cannot be at loc at or after timestep t
 // <agent, loc, -1, t, GLENGTH>: path of agent_id should be of length at least t + 1
+
+//<agent, loc, direct, t, DIRECT_VERTEX>
 
 //need hash related functions in global constraint table
 // The following is used by for generating the hash value of a constraint
