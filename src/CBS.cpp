@@ -95,6 +95,40 @@ void CBS::findConflicts(CBSNode& curr, int a1, int a2)
 				}
 				}
 			}
+			//debug for rectangle follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::RECTANGLE || curr.parent->conflict->rect_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::RECTANGLE)
+						{
+							conflict->rect_failed = true; //direct follow up
+						}
+						conflict->rect_follow_up = true;
+					}
+					}
+				}
+				//debug for corridor follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::CORRIDOR || curr.parent->conflict->corridor_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::CORRIDOR)
+						{
+							conflict->corridor_failed = true; //direct follow up
+						}
+						conflict->corridor_follow_up = true;
+					}
+					}
+				}
 			curr.unknownConf.push_back(conflict);
 		}
 		else if (timestep < min_path_length - 1
@@ -123,6 +157,40 @@ void CBS::findConflicts(CBSNode& curr, int a1, int a2)
 				}
 				}
 			}
+			//debug for rectangle follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::RECTANGLE || curr.parent->conflict->rect_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::RECTANGLE)
+						{
+							conflict->rect_failed = true; //direct follow up
+						}
+						conflict->rect_follow_up = true;
+					}
+					}
+				}
+				//debug for corridor follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::CORRIDOR || curr.parent->conflict->corridor_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::CORRIDOR)
+						{
+							conflict->corridor_failed = true; //direct follow up
+						}
+						conflict->corridor_follow_up = true;
+					}
+					}
+				}
 
 			curr.unknownConf.push_back(conflict); // edge conflict
 		}
@@ -159,6 +227,41 @@ void CBS::findConflicts(CBSNode& curr, int a1, int a2)
 							conflict->target_failed = true; //direct follow up
 						}
 						conflict->target_follow_up = true;
+					}
+					}
+				}
+
+				//debug for rectangle follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::RECTANGLE || curr.parent->conflict->rect_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::RECTANGLE)
+						{
+							conflict->rect_failed = true; //direct follow up
+						}
+						conflict->rect_follow_up = true;
+					}
+					}
+				}
+				//debug for corridor follow up conflict
+				if(curr.parent != nullptr)
+				{
+					if(curr.parent->conflict->type == conflict_type::CORRIDOR || curr.parent->conflict->corridor_follow_up==true) //current choosen conflict is a target conflict or target follow up
+					{
+					int con_a1 = curr.parent->conflict->a1;
+					int con_a2 = curr.parent->conflict->a2;
+					if((con_a1 == a1 && con_a2 == a2) || (con_a1 == a2 && con_a2 == a1)) //new conflict found by these two agent
+					{
+						if(curr.parent->conflict->type == conflict_type::CORRIDOR)
+						{
+							conflict->corridor_failed = true; //direct follow up
+						}
+						conflict->corridor_follow_up = true;
 					}
 					}
 				}
@@ -225,7 +328,7 @@ shared_ptr<Conflict> CBS::chooseConflict(const CBSNode& node) const
 	if (screen == 3)
 		printConflicts(node);
 	shared_ptr<Conflict> choose;
-	if (!node.single_conflicts.empty())
+	if (pruning && !node.single_conflicts.empty())
 	{
 		//std::cout<<"test"<<std::endl;
 		choose = node.single_conflicts.back();
@@ -286,7 +389,6 @@ void CBS::computePriorityForConflict(Conflict& conflict, const CBSNode& node)
 
 bool CBS::classifyConflicts(CBSNode& node)
 {
-	//std::cout<<"test3"<<std::endl;
 	// Classify all conflicts in unknownConf
 	while (!node.unknownConf.empty())
 	{
@@ -296,7 +398,6 @@ bool CBS::classifyConflicts(CBSNode& node)
 		constraint_type type;
 		tie(a, loc1, loc2, timestep, type) = con->constraint1.back();
 		node.unknownConf.pop_front();
-
 		//std::cout<<"test31"<<std::endl;
 		bool cardinal1 = false, cardinal2 = false;
 		if (timestep >= (int) paths[a1]->size())
@@ -312,6 +413,7 @@ bool CBS::classifyConflicts(CBSNode& node)
 			mdd_helper.findSingletons(node, a2, *paths[a2]);
 		}
 
+
 		if (type == constraint_type::EDGE) // Edge conflict
 		{
 			cardinal1 = paths[a1]->at(timestep).is_single() && paths[a1]->at(timestep - 1).is_single();
@@ -324,17 +426,6 @@ bool CBS::classifyConflicts(CBSNode& node)
 			if (!cardinal2)
 				cardinal2 = paths[a2]->at(timestep).is_single();
 		}
-
-		/*int width_1 = 1, width_2 = 1;
-
-		if (paths[a1]->size() > timestep){
-		  width_1 = paths[a1]->at(timestep).mdd_width;
-		}
-
-		if (paths[a2]->size() > timestep){
-		  width_2 = paths[a2]->at(timestep).mdd_width;
-		}
-		con -> mdd_width = width_1 * width_2;*/
 
 		if (cardinal1 && cardinal2)
 		{
@@ -349,7 +440,6 @@ bool CBS::classifyConflicts(CBSNode& node)
 			con->priority = conflict_priority::NON;
 		}
 
-		//std::cout<<"test32"<<std::endl;
 
 		// Corridor reasoning
 		auto corridor = corridor_helper.run(con, paths, node);
@@ -361,7 +451,6 @@ bool CBS::classifyConflicts(CBSNode& node)
 			continue;
 		}
 
-		//std::cout<<"test33"<<std::endl;
 
 		// Target Reasoning
 		if (con->type == conflict_type::TARGET)
@@ -370,8 +459,6 @@ bool CBS::classifyConflicts(CBSNode& node)
 			node.conflicts.push_back(con);
 			continue;
 		}
-
-		//std::cout<<"test34"<<std::endl;
 
 
 		// Rectangle reasoning
@@ -411,8 +498,8 @@ bool CBS::classifyConflicts(CBSNode& node)
 		node.conflicts.push_back(con);
 
 		if (pruning)
+		//if (false)
 		{
-			//std::cout<<"test21"<<std::endl;
 			bool child_prune[2] = {false,false}; 
 			shared_ptr<Conflict> check_conflict = node.conflicts.back();
 			list<Constraint> c = check_conflict->constraint1;
@@ -427,8 +514,16 @@ bool CBS::classifyConflicts(CBSNode& node)
 					{
 						continue;
 					}
+					if (n->conflict != nullptr)
+					{
+						continue;
+					}
 					//1.0 version, find all constraints to already exist nodes, only prune new leaves
 					//if(shouldPrune(child[i],n,*child_constraints))
+					if(n->conflict == nullptr && shouldPrune(n,&node,c))
+					{
+						n->pruned = true;
+					}
 					if(shouldPrune(&node,n,c))
 					{
 						child_prune[0]= true;
@@ -448,8 +543,16 @@ bool CBS::classifyConflicts(CBSNode& node)
 					{
 						continue;
 					}
+					if (n->conflict != nullptr)
+					{
+						continue;
+					}
 					//1.0 version, find all constraints to already exist nodes, only prune new leaves
 					//if(shouldPrune(child[i],n,*child_constraints))
+					if(n->conflict == nullptr && shouldPrune(n,&node,c))
+					{
+						n->pruned = true;
+					}
 					if(shouldPrune(&node,n,c))
 					{
 						child_prune[1] = true;
@@ -463,22 +566,15 @@ bool CBS::classifyConflicts(CBSNode& node)
 			}
 			if (child_prune[0])
 			{
-				//std::cout<<"test"<<std::endl;
 				node.single_conflicts.push_back(check_conflict);
-				//node.single_remain_child[check_conflict] = 1;
-				//node.conflicts.pop_back();
 			}
 			if (child_prune[1])
 			{
-				//std::cout<<"test"<<std::endl;
 				node.single_conflicts.push_back(check_conflict);
-				//node.single_remain_child[check_conflict] = 0;
-				//node.conflicts.pop_back();
 			}
-
-			//std::cout<<"test22"<<std::endl;
 		}
 	}
+
 
 
 	// remove conflicts that cannot be chosen, to save some memory
@@ -554,7 +650,6 @@ bool CBS::findPathForSingleAgent(CBSNode* node, int ag, int lowerbound)
 
 bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 {
-	//std::cout<<"c1"<<std::endl;
 	clock_t t1 = clock();
 	node->parent = parent;
 	node->g_val = parent->g_val;
@@ -566,7 +661,6 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	{
 		node->all_constraints.insert(c);
 	}
-	//std::cout<<"d1"<<std::endl;
 
 	int agent, x, y, t;
 	constraint_type type;
@@ -665,7 +759,6 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 		}
 		//printPaths();
 	}
-	//std::cout<<"c2"<<std::endl;
 
 	assert(!node->paths.empty());
 
@@ -674,23 +767,10 @@ bool CBS::generateChild(CBSNode* node, CBSNode* parent)
 	node->disjoint_nodes = node->parent->disjoint_nodes;
 	for (auto p: node->paths)
 	{
-		// auto it = node->paths_costs.find(p.first);
-		// if (it != node->paths_costs.end())
-		// {
-		// 	//if (it->second < p.second.size())
-		// 	//{
-		// 		it->second = p.second.size();
-		// 	//}
-		// }
-		// else
-		// {
-		// 	node->paths_costs.insert({p.first,p.second.size()});
-		// }
-		//std::cout<<p.first<<" "<<node->path_costs.size()<<" "<<node->parent->path_costs.size()<<std::endl;
 		node->path_costs[p.first] = p.second.size();
 	}
 	//test
-	node->single_remain_child = node->parent->single_remain_child;
+	//node->single_remain_child = node->parent->single_remain_child;
 
 
 	findConflicts(*node);
@@ -793,6 +873,10 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 				 //debug for target here
 				 ",target reasoning failed" <<
 				 ",target follow up conflicts" <<
+				 ",rect reasoning failed" <<
+				 ",rect follow up conflicts" <<
+				 ",corridor reasoning failed" <<
+				 ",corridor follow up conflicts" <<
 				  endl;
 		addHeads.close();
 	}
@@ -821,7 +905,9 @@ void CBS::saveResults(const string& fileName, const string& instanceName) const
 
 		  runtime_preprocessing << "," << getSolverName() << "," << instanceName <<
 		  //debug for target
-		  ","<<target_failed<<"," <<target_follow_up<< endl;
+		  ","<<target_failed<<"," <<target_follow_up <<
+		  ","<<rect_failed<<"," <<rect_follow_up<<
+		  ","<<corridor_failed<<"," <<corridor_follow_up<< endl;
 	stats.close();
 }
 void CBS::saveStats(const string &fileName, const string &instanceName) const
@@ -939,24 +1025,24 @@ string CBS::getSolverName() const
 
 bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2, list<Constraint> c)
 {
-	list<Constraint> pc = n2->pruned_constraint;
-	if(!pc.empty())
-	{
-		for (auto p:pc)
-		{
-			for (auto check:c)
-			{
-				if (p == check)
-				{
-					return false;
-				}
-			}
-			if (n1->all_constraints.find(p) != n1->all_constraints.end())
-			{
-				return false;
-			}
-		}
-	}
+	// list<Constraint> pc = n2->pruned_constraint;
+	// if(!pc.empty())
+	// {
+	// 	for (auto p:pc)
+	// 	{
+	// 		for (auto check:c)
+	// 		{
+	// 			if (p == check)
+	// 			{
+	// 				return false;
+	// 			}
+	// 		}
+	// 		if (n1->all_constraints.find(p) != n1->all_constraints.end())
+	// 		{
+	// 			return false;
+	// 		}
+	// 	}
+	// }
 	n2 = n2->parent;
 	for (int i = 0; i < num_of_agents; i++)
 	{
@@ -1010,6 +1096,7 @@ bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2, list<Constraint> c)
 		}
 		if (type == constraint_type::RANGE)
 		{
+			//return false;
 			//agent not at location x, from time y, to time t
 			auto mdd = mdd_helper.getMDD(*n1, agent, n1->path_costs[agent]);
 			//y = max(search_engines[0]->instance.getManhattanDistance(paths[agent]->front().location,x),0);
@@ -1083,54 +1170,23 @@ bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2, list<Constraint> c)
 
 bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2)
 {
-	//change to a constraints set to reduce the effort to check
-	//find the start node to check
-	// list<CBSNode*>::iterator it_n1 = n1->ancestors.begin();
-	// list<CBSNode*>::iterator it_n2 = n2->ancestors.begin();
-	// while(it_n1 != n1->ancestors.end() && it_n2 != n2->ancestors.end())
-	// {
-	// 	if (*it_n1 == *it_n2)
-	// 	{
-	// 		it_n1++;
-	// 		it_n2++;
-	// 	}
-	// 	else
-	// 	{
-	// 		break;
-	// 	}
-	// }
 
 	list<Constraint> pc = n2->pruned_constraint; // check if there is already prunned constraint
 	//should check n1's parent contains the solution or not?
-	if(!pc.empty())
-	{
-		// CBSNode* n = n1;
-		// while (n != nullptr)
-		// {
-		// 	for (auto con: n->constraints)
-		// 	{
-		// 		list<Constraint>::iterator constraint_iterator;
-		// 		constraint_iterator = find(pc.begin(),pc.end(),con);
-		// 		if (constraint_iterator != pc.end())
-		// 		{
-		// 			return false;
-			
-		// 		}
-		// 	}
-		//  	n = n->parent;
-		// }	
+	// if(!pc.empty())
+	// {	
 
-		//check the already pruned constraint is in n1's constraint
-		for (auto p:pc)
-		{
-			if (n1->all_constraints.find(p) != n1->all_constraints.end())
-			{
-				// n1->disjoint_nodes.insert(n2);
-				// n2->disjoint_nodes.insert(n1);
-				return false;
-			}
-		}
-	}
+	// 	//check the already pruned constraint is in n1's constraint
+	// 	for (auto p:pc)
+	// 	{
+	// 		if (n1->all_constraints.find(p) != n1->all_constraints.end())
+	// 		{
+	// 			// n1->disjoint_nodes.insert(n2);
+	// 			// n2->disjoint_nodes.insert(n1);
+	// 			return false;
+	// 		}
+	// 	}
+	// }
 	//test for idea
 	n1 = n1->parent;
 	n2 = n2->parent;
@@ -1175,7 +1231,6 @@ bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2)
 						{
 							if (it->location == state.first) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
 							{
-								//std::cout<<"prune check "<<x<<std::endl;
 								return false;
 							}
 						}
@@ -1218,14 +1273,9 @@ bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2)
 						{
 							if (it->location == x) // n1's mdd has this location on t, but n2 has constraint on this location, so n1 cannot imply n2
 							{
-								//std::cout<<"prune check "<<x<<std::endl;
 								return false;
 							}
-						}
-						// if (mdd->level_locations[time].find(x) != mdd->level_locations[time].end())
-						// {
-						// 	return false;
-						// }		
+						}	
 					}
 					else
 					{
@@ -1246,11 +1296,7 @@ bool CBS::shouldPrune(CBSNode* n1, CBSNode* n2)
 							//std::cout<<"prune check "<<x<<std::endl;
 							return false;
 						}
-					}
-					// if (mdd->level_locations[t].find(x) != mdd->level_locations[t].end())
-					// {
-					// 	return false;
-					// }	
+					}	
 				}
 				else
 				{
@@ -1305,9 +1351,7 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 	}
 	// set timer
 	start = clock();
-
 	generateRoot();
-
 	while (!open_list.empty() && !solution_found)
 	{
 		updateFocalList();
@@ -1325,13 +1369,6 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			solution_found = false;
 			break;
 		}
-		//test
-		// if (num_HL_expanded >10)
-		// {
-		// 	solution_cost = -1;
-		// 	solution_found = false;
-		// 	break;
-		// }
 		CBSNode* curr = focal_list.top();
 		focal_list.pop();
 		open_list.erase(curr->open_handle);
@@ -1340,7 +1377,6 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 
 		if (screen > 1)
 			cout << endl << "Pop " << *curr << endl;
-
 		if (curr->unknownConf.size() + curr->conflicts.size() == 0) //no conflicts
 		{// found a solution (and finish the while look)
 			solution_found = true;
@@ -1349,6 +1385,10 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			break;
 		}
 
+		if (curr->pruned)
+		{
+			continue;
+		}
 
 		if (!curr->h_computed) // heuristics has not been computed yet
 		{
@@ -1357,9 +1397,19 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				bool no_pruned = classifyConflicts(*curr);
 				if (!no_pruned)
 				{
+					// CBSNode* p = curr->parent;
+					// while (p != nullptr)
+					// {
+					// 	for (auto c: curr->constraints)
+					// 	{
+					// 		p->pruned_constraint.push_back(c);
+					// 	}
+					// 	p = p->parent;
+					// }
 					continue;
 				}
 			}
+			
 			runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
 			bool succ = heuristic_helper.computeInformedHeuristics(*curr, time_limit - runtime);
 			runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
@@ -1375,18 +1425,20 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				continue;
 			}
 
+
 			// reinsert the node
 			curr->open_handle = open_list.push(curr);
 			if (curr->g_val + curr->h_val <= focal_list_threshold)
+			{
 				curr->focal_handle = focal_list.push(curr);
+			}
+				
 			if (screen == 2)
 			{
 				cout << "	Reinsert " << *curr << endl;
 			}
 			continue;
 		}
-
-		//std::cout<<"test2"<<std::endl;
 
 
 
@@ -1507,6 +1559,10 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 									{
 										continue;
 									}
+									if (n->conflict != nullptr)
+									{
+										continue;
+									}
 									//1.0 version, find all constraints to already exist nodes, only prune new leaves
 									//if(shouldPrune(child[i],n,*child_constraints))
 									if(shouldPrune(child[i],n))
@@ -1518,23 +1574,12 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 											cout << "		Prune " << *child[i] <<" by Node "<<*n << endl;
 										}
 
-										// //test
-										// if(child[i]->constraints.size() == 1 && n->constraints.size()>1)
-										// {
-										// 	prune_count++;
-										// }
-										//p_node[i] = n;
-
 										break; // find current constraint shoul prune
 									}
-									// if(n->conflict == nullptr)
-									// {
-									// 	if(shouldPrune(n,child[i]))
-									// 	{
-									// 		n->pruned = true;
-									// 		//it->second.remove(n);
-									// 	}
-									// }
+									if(shouldPrune(n,child[i]))
+									{
+										n->pruned = true;
+									}
 								}
 							//}
 							if (!pruned[i])
@@ -1643,6 +1688,15 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 					bool no_pruned = classifyConflicts(*curr); // classify the new-detected conflicts
 					if (!no_pruned)
 					{
+						// CBSNode* p = curr->parent;
+						// while (p != nullptr)
+						// {
+						// 	for (auto c: curr->constraints)
+						// 	{
+						// 		p->pruned_constraint.push_back(c);
+						// 	}
+						// 	p = p->parent;
+						// }
 						break;
 					}
 				}
@@ -1653,27 +1707,22 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				int child_pruned = 0;
 				for (int i = 0; i < 2; i++)
 				{
-					// if(pruned[i])
-					// {
-					// 	//std::cout<<"test3"<<std::endl;
-					// 	child_pruned++;
-					// 	for (auto c: child[i]->constraints)
-					// 	{
-					// 		//num_pruned_child++;
-					// 		curr->pruned_constraint.push_back(c);
-					// 	}
-					// 	//delete child[i];
-					// 	continue;
-					// }	
 					if (solved[i] && pruned[i])
 					{
-						for (auto c: child[i]->constraints)
-						{
-							//num_pruned_child++;
-							curr->pruned_constraint.push_back(c);
-							child_pruned++;
-						}
-						//delete child[i];
+						// for (auto c: child[i]->constraints)
+						// {
+						// 	curr->pruned_constraint.push_back(c);
+						// 	child_pruned++;
+						// }
+						// CBSNode* p = curr->parent;
+						// while (p != nullptr)
+						// {
+						// 	for (auto c: child[i]->constraints)
+						// 	{
+						// 		p->pruned_constraint.push_back(c);
+						// 	}
+						// 	p = p->parent;
+						// }
 					}
 					if (solved[i] && !pruned[i])
 					{	//if not pruned we insert the node with constraints to global constraint table
@@ -1712,17 +1761,17 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 					}
 				}
 				//try make the prune as disjoint
-				if (child_pruned == 1)
-				{
-					//num_HLG_single_pruned++;
-				}
-				if (child_pruned == 2)
-				{
-					//num_HLG_full_pruned++;
-					//curr->conflict->prune_priority = conflict_prune_priority::FULL_PRUNED;
-					//curr->full_pruned = true;
-					//curr->conflict->full_pruned++;
-				}
+				// if (child_pruned == 1)
+				// {
+				// 	//num_HLG_single_pruned++;
+				// }
+				// if (child_pruned == 2)
+				// {
+				// 	//num_HLG_full_pruned++;
+				// 	//curr->conflict->prune_priority = conflict_prune_priority::FULL_PRUNED;
+				// 	//curr->full_pruned = true;
+				// 	//curr->conflict->full_pruned++;
+				// }
 				//else if (child_pruned == 1)
 				// {
 				// 	//if (curr->conflict->prune_priority != conflict_prune_priority::FULL_PRUNED)
@@ -1732,7 +1781,8 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 				// else
 				// {
 				// 	//if (curr->conflict->prune_priority != conflict_prune_priority::FULL_PRUNED && curr->conflict->prune_priority != conflict_prune_priority::HALF_PRUNED)
-				  		curr->conflict->prune_priority = conflict_prune_priority::SEEN;
+				if (pruning)
+				  	curr->conflict->prune_priority = conflict_prune_priority::SEEN;
 				// 	//curr->conflict->seen++;
 				// }
 			}
@@ -1766,9 +1816,28 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
 			{
 				target_follow_up++;
 			}
+
+			if (curr->conflict->rect_failed == true)
+			{
+				rect_failed++;
+			}
+			if (curr->conflict->rect_follow_up == true)
+			{
+				rect_follow_up++;
+			}
+
+			if (curr->conflict->corridor_failed == true)
+			{
+				corridor_failed++;
+			}
+			if (curr->conflict->corridor_follow_up == true)
+			{
+				corridor_follow_up++;
+			}
 		}
 		curr->clear();
 	}  // end of while loop
+
 
 
 	runtime = (double) (clock() - start) / CLOCKS_PER_SEC;
@@ -1924,9 +1993,11 @@ inline void CBS::releaseNodes()
 {
 	open_list.clear();
 	focal_list.clear();
+	//global_constraints.clear();
 	for (auto node : allNodes_table)
 		delete node;
 	allNodes_table.clear();
+	//global_constraints.clear();
 }
 
 
@@ -1950,7 +2021,9 @@ CBS::~CBS()
 void CBS::clearSearchEngines()
 {
 	for (auto s : search_engines)
+	{
 		delete s;
+	}		
 	search_engines.clear();
 }
 

@@ -233,6 +233,8 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	int conflict_location = paths[a1]->at(timestep).location;
     int conflict_direction = paths[a1]->at(timestep).direction;
 	MDDNode multiple_visits(-1, -1, nullptr);
+
+    
 	// project MDDs to the 2D space
     // in rotation, no need to modify to *4, because the conflict is happend in location not direction
 	vector<MDDNode*> visit_times1(instance.map_size, nullptr);
@@ -249,7 +251,7 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	vector<bool> overlap_area(instance.map_size, false);
 	pair<int, int> Rs(paths[a1]->at(timestep - 1).location, conflict_location), Rg(conflict_location, conflict_location);
 	findOverlapArea(conflict_location, overlap_area, visit_times1, visit_times2, entry1, entry2, exit1, exit2, Rs, Rg, &multiple_visits);
-	// TODO:: it seems that we do not need exits.
+    // TODO:: it seems that we do not need exits.
 	if (Rs.second == Rg.first) // The overlap area only contains a single location
 		return  nullptr;
 
@@ -258,13 +260,11 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	pair<int, int> R1 = Rs, R2 = Rs;
 	if(!scanPerimeter(stage, overlap_area, Rs, Rg, R1, R2, entry1, entry2))
 		return nullptr;
-
 	// check holes
 	if (!checkHoles(entry1, entry2, overlap_area, Rs))
 		return nullptr;
 	if (!checkHoles(entry2, entry1, overlap_area, Rs))   // TODO:: it seems that we do not need this step?
 		return nullptr;
-
 
 	// generate constraints
 	list<Constraint> constraint1, constraint2;
@@ -280,7 +280,6 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	}
 	if (!blocked(*paths[a1], constraint1) || !blocked(*paths[a2], constraint2))
 		return nullptr;
-
 	bool cardinal1 = blocked(*mdd1, constraint1);
 	bool cardinal2 = blocked(*mdd2, constraint2);
 	auto rectangle = make_shared<Conflict>();
@@ -314,12 +313,18 @@ bool RectangleReasoning::blocked(const MDD& mdd, const list<Constraint>& constra
 	std::stack<MDDNode*> open_list;
 	set<MDDNode*> visited;
 	open_list.push(mdd.levels.back().back());
+    //something wrong with the while loop, do it tomorrow
 	while (!open_list.empty())
 	{
 		auto curr = open_list.top();
 		open_list.pop();
+        //std::cout<<"test1"<<std::endl;
+        
 		if (curr == mdd.levels.front().front())
 			return false;
+        //std::cout<<"test2"<<std::endl;
+        //std::cout<<mdd.levels.front().front()->location<<" "<<curr->location<<std::endl;
+        //std::cout<<curr->parents.size()<<std::endl;
 		for (auto next : curr->parents)
 		{
 			// assert(next->location >= 0 && next->location < instance.map_size);
@@ -329,6 +334,7 @@ bool RectangleReasoning::blocked(const MDD& mdd, const list<Constraint>& constra
 				visited.insert(next);
 			}
 		}
+        //std::cout<<"test3"<<std::endl;
 	}
 	return true;
 }
@@ -520,7 +526,7 @@ list<int> RectangleReasoning::getStartCandidates(const vector<PathEntry>& path, 
 	list<int> starts;
 	for (int t = 0; t <= timestep; t++) //Find start that is single and Manhattan-optimal to conflicting location
 	{
-		if (path[t].is_single() && instance.getManhattanDistance(path[t].location, path[timestep].location, path[t].direction, path[timestep].direction) == timestep - t)
+		if (path[t].is_single_raw() && instance.getManhattanDistance(path[t].location, path[timestep].location, path[t].direction, path[timestep].direction) == timestep - t)
 			starts.push_back(t);
 	}
 	return starts;
@@ -532,7 +538,7 @@ list<int> RectangleReasoning::getGoalCandidates(const vector<PathEntry>& path, i
 	list<int> goals;
 	for (int t = (int)path.size() - 1; t >= timestep; t--) //Find end that is single and Manhattan-optimal to conflicting location
 	{
-		if (path[t].is_single() && instance.getManhattanDistance(path[timestep].location, path[t].location,path[timestep].direction, path[t].direction) == t - timestep)
+		if (path[t].is_single_raw() && instance.getManhattanDistance(path[timestep].location, path[t].location,path[timestep].direction, path[t].direction) == t - timestep)
 			goals.push_back(t);
 	}
 	return goals;
@@ -824,6 +830,11 @@ void RectangleReasoning::findOverlapArea(int conflict_location, vector<bool>& ov
                      visit_times2[next] != multiple_visits && visit_times2[next] != nullptr &&
                      visit_times1[next]->level == visit_times2[next]->level)
             {
+                // if (next == 331)
+                // {
+                //     std::cout<<"test"<<std::endl;
+                //     std::cout<<visit_times1[next]<<visit_times2[next]<<std::endl;
+                // }
                 open_list.push(next);
                 overlap_area[next] = true;
                 continue;

@@ -6,6 +6,13 @@ void CBSNode::clear()
 	conflicts.clear();
 	unknownConf.clear();
 	conflictGraph.clear();
+
+	// single_remain_child.clear();
+	// ancestors.clear();
+	// all_constraints.clear();
+	// disjoint_nodes.clear();
+	// pruned_constraint.clear();
+	// single_conflicts.clear();
 }
 
 void CBSNode::printConflictGraph(int num_of_agents) const

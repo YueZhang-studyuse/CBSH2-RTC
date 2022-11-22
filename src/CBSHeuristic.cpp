@@ -64,7 +64,10 @@ bool CBSHeuristic::computeInformedHeuristics(CBSNode& curr, double _time_limit)
 		break;
 	case heuristics_type::WDG:
 		if (!buildWeightedDependencyGraph(curr, HG))
+		{
 			return false;
+		}
+			
 		h = minimumWeightedVertexCover(HG);
 		break;
 	}
@@ -743,19 +746,6 @@ bool CBSHeuristic::SyncMDDs(const MDD &mdd, const MDD& other) // assume mdd.leve
 						}
 					}
 				}
-				//if (!validParent)
-				//{
-				//	// delete the edge, and continue up the levels if necessary
-				//	SyncMDDNode* p = *parent;
-				//	parent = (*node)->parents.erase(parent);
-				//	p->children.remove((*node));
-				//	if (p->children.empty())
-				//		copy.deleteNode(p);
-				//}
-				//else
-				//{
-				//	parent++;
-				//}
 			}
 			if ((*node)->coexistingNodesFromOtherMdds.empty())
 			{

@@ -323,78 +323,71 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 		list<pair<int,int>> next_states = instance.getNeighbors(curr->location,curr->cur_direction);
 		
 		int turning_count = 0;
-		//for (pair<int,int> next_state: next_states)
 		for (int i = 0; i < 4; i++)
 		{
-			//int next_location = next_state.first;
-			//int next_direction = next_state.second;
 			int next_location = curr->location;
 			if (i == 1)
 			{
 				next_location = curr->location + moves_forward_offset[curr->cur_direction];
 			}
-			else if (i != 0)//check useless moves here
-			//if (next_direction != curr->cur_direction)
-			{
-				//turning_count++; //turn left = 1; turn right = 2;
-				int turnleft = 0;
-				int turnright = 0;
-				LLNode* temp = curr;
-				bool prune = false;
-				while(temp->parent != nullptr)
-				{
-					if(temp->parent->location != temp->location)
-					{
-						break;
-					}
-					int direction1 = temp->cur_direction;
-					int direction2 = temp->parent->cur_direction;
-					if (direction1 == direction2)
-					{
-						temp = temp->parent;
-						continue;
-					}
-					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
-					{
-						if (i==2)
-						{
-							prune = true;
-							break;
-						}
-						else //before is turn left
-						{
-							turnright++;
-						}
-					}
-					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
-					{
-						if (i==3)
-						{
-							prune = true;
-							break;
-						}
-						else
-						{
-							turnleft++;
-						}
-					}
-					if((turnleft >= 2 && i==2) || (turnright>=2 && i==3))
-					{
-						prune = true;
-						break;
-					}
-					temp = temp->parent;
-				}
-				if(prune)
-				{
-					continue;
-				}
-			}
-			
-			 //+ instance.calculateMoves(i,curr->cur_direction);
-			//loc + moves_offset[i] * forward_move_offset[curr->cur_direction];
+			// else if (i != 0)//check useless moves here
+			// //if (next_direction != curr->cur_direction)
+			// {
+			// 	//turning_count++; //turn left = 1; turn right = 2;
+			// 	int turnleft = 0;
+			// 	int turnright = 0;
+			// 	LLNode* temp = curr;
+			// 	bool prune = false;
+			// 	while(temp->parent != nullptr)
+			// 	{
+			// 		if(temp->parent->location != temp->location)
+			// 		{
+			// 			break;
+			// 		}
+			// 		int direction1 = temp->cur_direction;
+			// 		int direction2 = temp->parent->cur_direction;
+			// 		if (direction1 == direction2)
+			// 		{
+			// 			temp = temp->parent;
+			// 			continue;
+			// 		}
+			// 		if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
+			// 		{
+			// 			if (i==2)
+			// 			{
+			// 				prune = true;
+			// 				break;
+			// 			}
+			// 			else //before is turn left
+			// 			{
+			// 				turnright++;
+			// 			}
+			// 		}
+			// 		if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
+			// 		{
+			// 			if (i==3)
+			// 			{
+			// 				prune = true;
+			// 				break;
+			// 			}
+			// 			else
+			// 			{
+			// 				turnleft++;
+			// 			}
+			// 		}
+			// 		if((turnleft >= 2 && i==2) || (turnright>=2 && i==3))
+			// 		{
+			// 			prune = true;
+			// 			break;
+			// 		}
+			// 		temp = temp->parent;
+			// 	}
+			// 	if(prune)
+			// 	{
+			// 		continue;
+			// 	}
+			//}
 			int next_timestep = curr->timestep + 1;
-			//std::cout<<"curr "<< curr->location<<" next"<< next_location<<std::endl;
 
 			if (!instance.validMove(curr->location,next_location))
 			{
@@ -415,9 +408,6 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 				next_direction = (current_direction + 1)%4;
 			}
 
-			//test
-			//std::cout<<"Generating... "<<next_location<<" direction "<<next_direction<<" timestep "<<next_timestep<<std::endl;
-
 			if (max((int) constraint_table.cat_size, constraint_table.latest_timestep) + 1 < curr->timestep)
 			{ // now everything is static, so switch to space A* where we always use the same timestep
 				if (next_location == curr->location && next_direction ==curr->cur_direction)
@@ -428,17 +418,11 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			}
 
 			if (constraint_table.constrained(next_location, next_timestep) ||
-				constraint_table.constrained(curr->location, next_location, next_timestep)||
+				constraint_table.constrained(curr->location, next_location, next_timestep))
+				//||
 				//direct constraint
-				constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
+				//constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
 				continue;
-			//test for target conflict
-			// if (next_timestep == holding_time -1 && next_location == goal_location )
-			// {
-			// 	continue;
-			// }
-			//test
-			//std::cout<<"not constrained: "<<next_location<<"time step"<<next_timestep<<std::endl;
 			
 			// compute cost to next_id via curr node
 			int next_g_val = curr->g_val + 1;
@@ -633,10 +617,10 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 					}
 					temp = temp->parent;
 				}
-				if(prune)
-				{
-					continue;
-				}
+				// if(prune)
+				// {
+				// 	continue;
+				// }
 			}
 			//curr->location + instance.calculateMoves(i,curr->cur_direction);
 			//loc + moves_offset[i] * forward_move_offset[curr->cur_direction];
@@ -673,10 +657,10 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			}
 
 			if (constraint_table.constrained(next_location, next_timestep) ||
-                constraint_table.constrained(curr->location, next_location, next_timestep)
-				||
+                constraint_table.constrained(curr->location, next_location, next_timestep))
+				//||
 				//direct constraint
-				constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
+				//constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
                 continue;
 			
 			// compute cost to next_id via curr node
@@ -820,10 +804,10 @@ Path SpaceTimeAStar::findPath(ConstraintTable& constraint_table, const pair<int,
 			}
 
 			if (constraint_table.constrained(next_location, next_timestep) ||
-				constraint_table.constrained(curr->location, next_location, next_timestep)
-				||
+				constraint_table.constrained(curr->location, next_location, next_timestep))
+				//||
 				//direct constraint
-				constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
+				//constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
 				continue;
 			
 			// compute cost to next_id via curr node
@@ -965,10 +949,10 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, int block_direcion,int
 					}
 					temp = temp->parent;
 				}
-				if(prune)
-				{
-					continue;
-				}
+				// if(prune)
+				// {
+				// 	continue;
+				// }
 			}
 			
 			if (!instance.validMove(curr->location,next_location))
@@ -990,9 +974,10 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, int block_direcion,int
 			}
 
 			if (constraint_table.constrained(next_location, next_timestep) ||
-				constraint_table.constrained(curr->location, next_location, next_timestep)||
+				constraint_table.constrained(curr->location, next_location, next_timestep))
+				//||
 				//direct constraint
-				constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
+				//constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
 				continue;
 			
 			//check the block edge
@@ -1056,6 +1041,7 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 		}
 	}
 	auto root = new AStarNode(start_location, start_direction, 0, start_h, nullptr, 0);
+	root->in_openlist = true;
 	root->open_handle = open_list.push(root);  // add root to heap
 	allNodes_table.insert(root);       // add root to hash_table (nodes)
 	AStarNode* curr = nullptr;
@@ -1064,6 +1050,7 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 	while (!open_list.empty())
 	{
 		curr = open_list.top(); open_list.pop();
+		//curr->in_openlist = false;
 		// if (curr->location == end && direction != -1)
 		// {
 		// 	std::cout<<curr->location<<" "<<curr->cur_direction<<" "<<end<<" "<<direction<<std::endl;
@@ -1092,79 +1079,75 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 		for (int i = 0; i < 4; i++)
 		{
 			int next_location = curr->location;
-			if (!constraint_table.latest_timestep > curr->timestep && i == 0)
+			if (constraint_table.latest_timestep <= curr->timestep && i == 0)
 			{
 				continue;
 			}
-			else if (!constraint_table.latest_timestep > curr->timestep)
+			else if (constraint_table.latest_timestep <= curr->timestep)
 			{
-				next_timestep--;
+				next_timestep = curr->timestep;
 			}
-			// if (i == 0)
-			// {
-			// 	next_timestep++;
-			// }
 			if (i == 1)
 			{
 				next_location = curr->location + moves_forward_offset[curr->cur_direction];
 			}
-			else if (i != 0)//check useless moves here
-			//if (false)
-			{
-				int turnleft = 0;
-				int turnright = 0;
-				LLNode* temp = curr;
-				bool prune = false;
-				while(temp->parent != nullptr)
-				{
-					if(temp->parent->location != temp->location)
-					{
-						break;
-					}
-					int direction1 = temp->cur_direction;
-					int direction2 = temp->parent->cur_direction;
-					if (direction1 == direction2)
-					{
-						temp = temp->parent;
-						continue;
-					}
-					if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
-					{
-						if (i == 2)
-						{
-							prune = true;
-							break;
-						}
-						else //before is turn left
-						{
-							turnright++;
-						}
-					}
-					if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
-					{
-						if (i == 3)
-						{
-							prune = true;
-							break;
-						}
-						else
-						{
-							turnleft++;
-						}
-					}
-					if((turnleft >= 2 && i == 2) || (turnright>=2 && i ==3))
-					{
-						prune = true;
-						break;
-					}
-					temp = temp->parent;
-				}
-				if(prune)
-				{
-					continue;
-				}
-				//next_timestep++;
-			}
+			// else if (i != 0)//check useless moves here
+			// //if (false)
+			// {
+			// 	int turnleft = 0;
+			// 	int turnright = 0;
+			// 	LLNode* temp = curr;
+			// 	bool prune = false;
+			// 	while(temp->parent != nullptr)
+			// 	{
+			// 		if(temp->parent->location != temp->location)
+			// 		{
+			// 			break;
+			// 		}
+			// 		int direction1 = temp->cur_direction;
+			// 		int direction2 = temp->parent->cur_direction;
+			// 		if (direction1 == direction2)
+			// 		{
+			// 			temp = temp->parent;
+			// 			continue;
+			// 		}
+			// 		if (direction1 - direction2 == 1 || (direction1 == 0 && direction2 == 3))//due to turn right
+			// 		{
+			// 			if (i == 2)
+			// 			{
+			// 				prune = true;
+			// 				break;
+			// 			}
+			// 			else //before is turn left
+			// 			{
+			// 				turnright++;
+			// 			}
+			// 		}
+			// 		if (direction1 - direction2 == -1 || (direction1 == 3 && direction2 == 0))//due to turn left
+			// 		{
+			// 			if (i == 3)
+			// 			{
+			// 				prune = true;
+			// 				break;
+			// 			}
+			// 			else
+			// 			{
+			// 				turnleft++;
+			// 			}
+			// 		}
+			// 		if((turnleft >= 2 && i == 2) || (turnright>=2 && i ==3))
+			// 		{
+			// 			prune = true;
+			// 			break;
+			// 		}
+			// 		temp = temp->parent;
+			// 	}
+			// 	if(prune)
+			// 	{
+			// 		continue;
+			// 	}
+			// 	//next_timestep++;
+			// }
 			
 			if (!instance.validMove(curr->location,next_location))
 			{
@@ -1185,9 +1168,10 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 			}
 
 			if (constraint_table.constrained(next_location, next_timestep) ||
-				constraint_table.constrained(curr->location, next_location, next_timestep)||
+				constraint_table.constrained(curr->location, next_location, next_timestep))
+				//||
 				//direct constraint
-				constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
+				//constraint_table.vertex_direct_constrained(next_location,next_direction,next_timestep))
 				continue;
 
 			int next_g_val = curr->g_val + 1;
@@ -1217,6 +1201,7 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 			auto it = allNodes_table.find(next);
 			if (it == allNodes_table.end())
 			{  // add the newly generated node to heap and hash table
+				//next->in_openlist = true;
 				next->open_handle = open_list.push(next);
 				allNodes_table.insert(next);
 			}
@@ -1227,8 +1212,17 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 				if (existing_next->g_val > next_g_val)
 				{
 					existing_next->g_val = next_g_val;
+					// if (existing_next->in_openlist != true)
+					// {
+					// 	existing_next->in_openlist = true;
+					// 	existing_next->open_handle = open_list.push(existing_next);
+					// }
+					// else
+					// {
+						open_list.increase(existing_next->open_handle);
+					//}
 					// existing_next->timestep = next_timestep; // Idon't think we need this?
-					open_list.increase(existing_next->open_handle);
+					
 				}
 			}
 		}  // end for loop that generates successors
@@ -1263,6 +1257,11 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 		// }
 	}
 	releaseNodes();
+	// open_list.clear();
+	// //focal_list.clear();
+	// for (auto node: allNodes_table)
+	// 	delete node;
+	// allNodes_table.clear();
 	//std::cout<<"length"<<length<<std::endl;
 	return length;
 }
