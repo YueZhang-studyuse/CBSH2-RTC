@@ -80,7 +80,7 @@ public:
 
 	int getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound);
 	int getTravelTime(int end, int direction, int block_direcion,int block_timestep, const ConstraintTable& constraint_table, int upper_bound);
-
+	bool checkReachable(int end, const ConstraintTable& constraint_table, int timestep);
 	string getName() const { return "AStar"; }
 
 	SpaceTimeAStar(const Instance& instance, int agent) :

@@ -76,6 +76,9 @@ private:
 		int from1, int from2, int lowerbound1, int lowerbound2, int corridor_length, const CBSNode& node);
 	static bool blocked(const Path& path, const Constraint& constraint);
 	int get_corridor_direction(int edge_difference);
+	pair<int, int> getPseudoTimeRanges(int a1, int a2, int endpoint1, int endpoint2,
+		int from1, int from2, int lowerbound1, int lowerbound2, int corridor_length, const CBSNode& node);
+	int findCorridorTurns(vector<int> corridor,int start, int stop);
 
 };
 

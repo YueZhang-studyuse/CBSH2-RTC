@@ -77,7 +77,7 @@ public:
 					// 	}
 					// }
 					return rand() % 2 == 0;
-					return 0;
+					//return 0;
 				}
 				return n1->g_val <= n2->g_val;  // break ties towards larger g_vals
 			}
@@ -138,6 +138,7 @@ public:
 		const vector<Path*>& paths, int agent, int lower_bound) = 0;
 	virtual int getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound) = 0;
 	virtual string getName() const = 0;
+	virtual bool checkReachable(int end, const ConstraintTable& constraint_table, int timestep) = 0;
 
 	list<int> getNextLocations(int curr) const; // including itself and its neighbors
 	list<int> getNeighbors(int curr) const { return instance.getNeighbors(curr); }

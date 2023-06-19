@@ -58,6 +58,7 @@ private:
 
 public:
 	vector<list<MDDNode*>> levels; //levels is the mdd tree
+	vector<list<MDDNode*>> prune_levels;
 	//location based mdds
 	//vector<list<MDDNode*>> merged_levels; //location based mdd tree
 	//vector<list<MDDNode*>> previous_merged_levels; //location based mdd tree
@@ -70,6 +71,7 @@ public:
 	void printNodes() const;
 	void printMergedNodes() const;
 	MDDNode* find(int location, int direction, int level) const;
+	MDDNode* findInPruneLevel(int location, int direction, int level) const;
 	void deleteNode(MDDNode* node);
 	void clear();
 	//void clearMergedMdd();
@@ -132,8 +134,10 @@ class SyncMDD
 {
 public:
 	vector<list<SyncMDDNode*>> levels;
+	vector<list<MDDNode*>> prune_levels;
 
 	SyncMDDNode* find(int location, int direction, int level) const;
+	MDDNode* findInPruneLevel(int location, int direction, int level) const;
 	void deleteNode(SyncMDDNode* node, int level);
 	void clear();
 
@@ -174,6 +178,6 @@ private:
 };
 
 //vector<MDDNode*> collectMDDlevel(MDD* mdd, int i);
-//unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i);
+unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i);
 unordered_map<int, MDDNode*> collectRawMDDlevel(MDD* mdd, int i);
-unordered_map<int, list<MDDNode*>> collectMDDlevel(MDD* mdd, int i);
+//unordered_map<int, list<MDDNode*>> collectMDDlevel(MDD* mdd, int i);

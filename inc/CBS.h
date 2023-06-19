@@ -37,6 +37,15 @@ public:
 	uint64_t target_failed = 0;
 	uint64_t target_follow_up = 0;
 
+	uint64_t rect_failed = 0;
+	uint64_t rect_follow_up = 0;
+
+	uint64_t corridor_failed = 0;
+	uint64_t corridor_follow_up = 0;
+
+	uint64_t num_HL_full_pruned = 0;
+	uint64_t num_HL_pruned = 0;
+
 
 	CBSNode* dummy_start = nullptr;
 	CBSNode* goal_node = nullptr;
@@ -47,6 +56,9 @@ public:
 	int solution_cost = -2;
 	double min_f_val;
 	double focal_list_threshold;
+
+	bool pruning = true;
+	double runtime_prune_check = 0;
 
 	//constraints
 	// define typedef for hash_map
@@ -93,8 +105,6 @@ private:
 	bool PC; // prioritize conflicts
 	bool save_stats;
 
-	bool pruning = true;
-
 	MDDTable mdd_helper;	
 	RectangleReasoning rectangle_helper;
 	CorridorReasoning corridor_helper;
@@ -127,12 +137,6 @@ private:
 	// vector<MDD*> mdds_initially;  // contain initial paths found
 	vector < SingleAgentSolver* > search_engines;  // used to find (single) agents' paths and mdd
 
-	//constraints
-	// define typedef for hash_map
-	//typedef unordered_map<Constraint, list<CBSNode*>, ConstraintHasher, eqconstraint> hashtable_c;
-	typedef unordered_map<std::list<Constraint>, list<CBSNode*>, ConstraintHasher, eqconstraint> hashtable_c;
-	hashtable_c global_constraints;
-
 
 	// high level search
 	bool findPathForSingleAgent(CBSNode*  node, int ag, int lower_bound = 0);
@@ -143,7 +147,7 @@ private:
 	void findConflicts(CBSNode& curr);
 	void findConflicts(CBSNode& curr, int a1, int a2);
 	shared_ptr<Conflict> chooseConflict(const CBSNode &node) const;
-	bool classifyConflicts(CBSNode &parent);
+	void classifyConflicts(CBSNode &parent);
 	// void copyConflicts(const list<shared_ptr<Conflict>>& conflicts,
 	// 	list<shared_ptr<Conflict>>& copy, int excluded_agent) const;
 	static void copyConflicts(const list<shared_ptr<Conflict>>& conflicts,
@@ -170,6 +174,5 @@ private:
 	inline void pushNode(CBSNode* node);
 
 	//pruning
-	bool shouldPrune(CBSNode* n1, CBSNode* n2, list<Constraint> c); //whether to prune n1
-	bool shouldPrune(CBSNode* n1, CBSNode* n2);
+	bool checkSubsumption(CBSNode* n1, CBSNode* n2);
 };

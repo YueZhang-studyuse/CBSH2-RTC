@@ -23,6 +23,7 @@ public:
 		bool operator()(const CBSNode* n1, const CBSNode* n2) const 
 		{
 			if (n1->tie_breaking == n2->tie_breaking)
+				//return 0;
 				return rand() % 2;
 			return n1->tie_breaking >= n2->tie_breaking;
 		}
@@ -43,9 +44,6 @@ public:
 		}
 	};
 
-	// conflicts in the current paths
-	list<shared_ptr<Conflict>> single_conflicts;
-	unordered_map<shared_ptr<Conflict>,int> single_remain_child;
 	list<shared_ptr<Conflict>> conflicts;
 	list<shared_ptr<Conflict>> unknownConf;
 
@@ -58,21 +56,6 @@ public:
 	list<pair<int, Path>> paths; // new paths
 	list<Constraint> constraints; // new constraints
 
-	//list<shared_ptr<Conflict>> pruned_conflicts;
-
-	//additional info required by pruning
-	//version 1.0 save parents cbs node
-	list<CBSNode*> ancestors; //list of all parents until root -change to constraints in version 2
-	unordered_map<int,int> paths_costs;
-	vector<int>path_costs;
-
-	unordered_set<Constraint, ConstraintHasherSingle, eqconstraintSingle> all_constraints;
-	unordered_set<CBSNode*> disjoint_nodes;
-
-	//need to know the pruned constraint?
-	list<Constraint> pruned_constraint;
-
-
 	int g_val;
 	int h_val;
 	int depth; // depth of this CT node
@@ -82,6 +65,17 @@ public:
 
 	uint64_t time_expanded;
 	uint64_t time_generated;
+
+	//For chosen which pair of node to identify
+	CBSNode* leftChild = nullptr;//The left child
+	CBSNode* rightChild = nullptr;//The right child
+	bool hasLeftChild = false;
+	bool hasRightChild = false;
+	unordered_set<CBSNode*> ancestors;//Its ancestors
+	bool pruned = false;
+	
+	//For help identification
+	vector<int>path_costs;//Path cost for each node
 
 
 	void clear();
