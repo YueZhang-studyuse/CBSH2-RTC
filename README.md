@@ -1,4 +1,4 @@
-# CBSH2-RTC
+<!-- # CBSH2-RTC
 An optimal solver for Multi-Agent Path Finding.
  
 
@@ -112,4 +112,4 @@ In Proceedings of the International Conference on Automated Planning and Schedul
  
 [10] Jiaoyang Li, Daniel Harabor, Peter J. Stuckey, Ariel Felner, Hang Ma, and Sven Koenig.
 Disjoint Splitting for Multi-Agent Path Finding with Conflict-Based Search.
-In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 279-283, 2019.
+In Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS), pages 279-283, 2019. -->
