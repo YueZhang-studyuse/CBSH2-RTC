@@ -11,7 +11,6 @@ Instance::Instance(const string& map_fname, const string& agent_fname,
 	int num_of_rows, int num_of_cols, int num_of_obstacles, int warehouse_width):
 	map_fname(map_fname), agent_fname(agent_fname), num_of_agents(num_of_agents),  agent_indices(agent_indices)
 {
-
 	bool succ = loadMap();
 	if (!succ)
 	{
@@ -42,19 +41,6 @@ Instance::Instance(const string& map_fname, const string& agent_fname,
 			exit(-1);
 		}
 	}
-
-	//wait, forward, turn left, turn right
-	//int moves_offset[] = {0,1,0,0};
-	// movs_offset[0] = 0;
-	// movs_offset[1] = 1;
-	// movs_offset[2] = 0;
-	// movs_offset[3] = 0;
-	// //north, eash, south, west
-	// //int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
-	// move_forward_offset[0] = -getCols();
-	// move_forward_offset[1] = 1;
-	// move_forward_offset[2] = getCols();
-	// move_forward_offset[3] = 1;
 
 }
 
@@ -419,76 +405,6 @@ bool Instance::loadAgents()
 			count++;
 		}
 	}
-	else if (line[0] == 'r') // My rotation benchmark
-	{
-		if (num_of_agents == 0)
-		{
-			cerr << "The number of agents should be larger than 0" << endl;
-			exit(-1);
-		}
-		start_locations.resize(num_of_agents);
-		goal_locations.resize(num_of_agents);
-		start_directions.resize(num_of_agents);
-		goal_directions.resize(num_of_agents);
-
-		vector<int> ids(num_of_agents);
-		if (agent_indices != "")
-		{
-			char_separator<char> sep(",");
-			tokenizer< char_separator<char> > chars(agent_indices, sep);
-			int i = 0;
-			for (auto c : chars)
-			{
-				ids[i] = atoi(c.c_str());
-				if (i > 0 && ids[i] <= ids[i - 1])
-					exit(-1); // the indices of the agents should be strictly increasing!
-				i++;
-			}
-		}
-		else
-		{
-			for (int i = 0; i < num_of_agents; i++)
-				ids[i] = i;
-		}
-		char_separator<char> sep("\t");	
-		int count = 0;
-		int i = 0;
-		while(i < num_of_agents)
-		{
-			getline(myfile, line);
-			if (count == ids[i])
-			{
-				tokenizer< char_separator<char> > tok(line, sep);
-				tokenizer< char_separator<char> >::iterator beg = tok.begin();
-				beg++; // skip the first number
-				beg++; // skip the map name
-				beg++; // skip the columns
-
-				beg++; // skip the rows
-					   // read start [row,col] for agent i
-				int col = atoi((*beg).c_str());
-				beg++;
-				int row = atoi((*beg).c_str());
-				start_locations[i] = linearizeCoordinate(row, col);
-				beg++;
-				int direction = atoi((*beg).c_str());
-				start_directions[i] = direction;
-
-				// read goal [row,col] for agent i
-				beg++;
-				col = atoi((*beg).c_str());
-				beg++;
-				row = atoi((*beg).c_str());
-				goal_locations[i] = linearizeCoordinate(row, col);
-				beg++;
-				direction = atoi((*beg).c_str());
-				goal_directions[i] = direction;
-				
-				i++;
-			}
-			count++;
-		}
-	}
 	else // My benchmark
 	{
 		char_separator<char> sep(",");
@@ -518,6 +434,7 @@ bool Instance::loadAgents()
 	}
 	myfile.close();
 	return true;
+
 }
 
 
@@ -559,39 +476,3 @@ list<int> Instance::getNeighbors(int curr) const
 	}
 	return neighbors;
 }
-
-list<pair<int,int>> Instance::getNeighbors(int curr_loc, int curr_direction) const
-{
-	list<pair<int,int>> neighbors;
-	int next_location = curr_loc;
-	int next_direction = curr_direction;
-	//wait
-	neighbors.emplace_back(make_pair(next_location,next_direction));
-	//forward
-	int moves_forward_offset[] = {-num_of_cols,1,num_of_cols,-1};
-	next_location = curr_loc + moves_forward_offset[curr_direction];
-	if (validMove(curr_loc, next_location))
-	{
-		neighbors.emplace_back(make_pair(next_location,next_direction));
-	}
-	//turn left
-	next_location = curr_loc;
-	next_direction = curr_direction - 1;
-	if (next_direction == -1)
-	{
-		next_direction = 3;
-	}
-	neighbors.emplace_back(make_pair(next_location,next_direction));
-	//turn right
-	next_location = curr_loc;
-	next_direction = (curr_direction + 1)%4;
-	neighbors.emplace_back(make_pair(next_location,next_direction));
-	
-	return neighbors;
-}
-
-// int Instance::calculateMoves(int move, int direction) const
-// {
-// 	//std::cout<<" move offset "<<movs_offset[move]<<" move forward offset"<<move_forward_offset[direction]<<std::endl;
-// 	return movs_offset[move]*move_forward_offset[direction];
-// }

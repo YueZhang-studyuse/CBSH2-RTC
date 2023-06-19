@@ -213,8 +213,13 @@ void SIPP::generateChild(const Interval& interval, SIPPNode* curr, int next_loca
 	delete next;  // not needed anymore -- we already generated it before
 }
 
+bool SIPP::checkReachable(int end, const ConstraintTable& constraint_table, int timestep)
+{
+	return true;
+}
+
 // TODO:: currently this is implemented in A*, not SIPP
-int SIPP::getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound)
+int SIPP::getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound)
 {
 	int length = MAX_TIMESTEP;
 	if (constraint_table.length_min >= MAX_TIMESTEP || constraint_table.length_min > constraint_table.length_max || // the agent cannot reach its goal location
@@ -341,9 +346,4 @@ int SIPP::getTravelTime(int end, int direction, const ConstraintTable& constrain
 	}
 	nodes.clear();
 	return length;*/
-}
-
-bool SIPP::checkReachable(int end, const ConstraintTable& constraint_table, int timestep)
-{
-	return true;
 }

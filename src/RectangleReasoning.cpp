@@ -23,65 +23,23 @@ shared_ptr<Conflict> RectangleReasoning::run(const vector<Path*>& paths, int tim
 	case rectangle_strategy::DR:
 		rectangle = findGenerealizedRectangleConflict(paths, timestep, a1, a2, mdd1, mdd2);
 		break;
-    // case rectangle_strategy::RCR:
-    //     rectangle = findCardinalRectangleConflict(paths, timestep, a1, a2);
-    //     break;
 	}
 	accumulated_runtime += (double)(clock() - t) / CLOCKS_PER_SEC;
 	return rectangle;
 }
 
-// change for R to  R+Rotation
+// for R
 shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path*>& paths, int timestep, int a1, int a2)
 {
     auto s1 = instance.getCoordinate(paths[a1]->front().location);
     auto g1 = instance.getCoordinate(paths[a1]->back().location);
     auto s2 = instance.getCoordinate(paths[a2]->front().location);
     auto g2 = instance.getCoordinate(paths[a2]->back().location);
-
-    auto ds1 = paths[a1]->front().direction;
-    auto dg1 = paths[a1]->back().direction;
-    auto ds2 = paths[a2]->front().direction;
-    auto dg2 = paths[a2]->back().direction;
-
-    //check manhattan-turning optimal
-    if (!isRectangleConflict(s1, s2, g1, g2, ds1,dg1,ds2,dg2, (int)paths[a1]->size() - 1, (int)paths[a2]->size() - 1))
+    if (!isRectangleConflict(s1, s2, g1, g2, (int)paths[a1]->size() - 1, (int)paths[a2]->size() - 1))
         return nullptr;
     auto Rs = getRs(s1, s2, g1);
     auto Rg = getRg(s1, g1, g2);
-
-    //check if every node inside rectangle to the start is the same for 2 agents
-    int startx,starty,endx,endy;
-    if (Rs.first < Rg.first)
-    {
-        startx = Rs.first;
-        endx = Rg.first;
-    }else{
-        startx = Rg.first;
-        endx = Rs.first;
-    }
-    if (Rs.second < Rg.second)
-    {
-        starty = Rs.second;
-        endy = Rg.second;
-    }else{
-        starty = Rg.second;
-        endy = Rs.second;
-    }
-    for (int i = startx; i <= endx; i++)
-    {
-        for (int j = starty; j <= endy; j++)
-        {
-            int d1 = getTurning(s1,make_pair(i, j),ds1,-1) + abs(s1.first - i) + abs(s1.second-j);
-            int d2 = getTurning(s2,make_pair(i, j),ds2,-1) + abs(s2.first - i) + abs(s2.second-j);
-            if (d1 != d2)
-            {
-                return nullptr;
-            }
-        }
-    }
-
-    int Rg_t = abs(Rg.first - s1.first) + abs(Rg.second - s1.second) + getTurning(s1,Rg,ds1,-1);
+    int Rg_t = abs(Rg.first - s1.first) + abs(Rg.second - s1.second);
     list<Constraint> constraint1;
     list<Constraint> constraint2;
     addBarrierConstraints(a1, a2, Rs, Rg, s1, s2, Rg_t, constraint1, constraint2);
@@ -110,7 +68,6 @@ shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path
     list<int> s2s = getStartCandidates(*paths[a2], timestep);
     list<int> g2s = getGoalCandidates(*paths[a2], timestep);
     pair<int, int> location = instance.getCoordinate(paths[a1]->at(timestep).location);
-    int direction = paths[a1]->at(timestep).direction;
 
     // Try all possible combinations
     int type = -1;
@@ -119,83 +76,27 @@ shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path
     {
         for (int t1_end : g1s)
         {
-            //start and goal for agent 1
             auto s1 = instance.getCoordinate(paths[a1]->at(t1_start).location);
             auto g1 = instance.getCoordinate(paths[a1]->at(t1_end).location);
-            auto ds1 = paths[a1]->at(t1_start).direction;
-            auto dg1 = paths[a1]->at(t1_end).direction;
-
-            if (instance.getManhattanDistance(s1, g1) + getTurning(s1, g1,ds1,dg1)!=  t1_end - t1_start) //not manhattan turning optimal
-            {
+            if (instance.getManhattanDistance(s1, g1) !=  t1_end - t1_start)
                 continue;
-            }
-                
             for (int t2_start : s2s)
             {
                 for (int t2_end : g2s)
                 {
-                    //start and goal for agent 2
                     auto s2 = instance.getCoordinate(paths[a2]->at(t2_start).location);
                     auto g2 = instance.getCoordinate(paths[a2]->at(t2_end).location);
-                    auto ds2 = paths[a2]->at(t2_start).direction;
-                    auto dg2 = paths[a2]->at(t2_end).direction;
-
-                    if (instance.getManhattanDistance(s2, g2) + getTurning(s2, g2,ds2,dg2) != t2_end - t2_start)
-                    {
+                    if (instance.getManhattanDistance(s2, g2) != t2_end - t2_start)
                         continue;
-                    }
                     if (!isRectangleConflict(s1, s2, g1, g2))
-                    {
                         continue;
-                    }
                     auto Rg = getRg(s1, g1, g2);
                     auto Rs = getRs(s1, s2, g1);
-
-                    //check if every node inside rectangle to the start is the same for 2 agents
-                    int not_rec = false;
-                    int startx,starty,endx,endy;
-                    if (Rs.first < Rg.first)
-                    {
-                        startx = Rs.first;
-                        endx = Rg.first;
-                    }else{
-                        startx = Rg.first;
-                        endx = Rs.first;
-                    }
-                    if (Rs.second < Rg.second)
-                    {
-                        starty = Rs.second;
-                        endy = Rg.second;
-                    }else{
-                        starty = Rg.second;
-                        endy = Rs.second;
-                    }
-                    for (int i = startx; i <= endx && !not_rec; i++)
-                    {
-                        for (int j = starty; j <= endy && !not_rec; j++)
-                        {
-                            int d1 = getTurning(s1,make_pair(i, j),ds1,-1) + abs(s1.first - i) + abs(s1.second-j);
-                            int d2 = getTurning(s2,make_pair(i, j),ds2,-1) + abs(s2.first - i) + abs(s2.second-j);
-                            if (d1 != d2)
-                            {
-                                not_rec = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (not_rec)
-                    {
-                        continue;
-                    }
-
                     int new_area = (abs(Rs.first - Rg.first) + 1) * (abs(Rs.second - Rg.second) + 1);
                     auto new_type = classifyRectangleConflict(s1, s2, g1, g2, Rg);
-                    
-
                     if (new_type > type || (new_type == type && new_area > area))
                     {
-                        //int Rg_t = timestep + abs(Rg.first - location.first) + abs(Rg.second - location.second);
-                        int Rg_t = timestep + abs(Rg.first - location.first) + abs(Rg.second - location.second) + getTurning(location,Rg,direction,-1);
+                        int Rg_t = timestep + abs(Rg.first - location.first) + abs(Rg.second - location.second);
                         list<Constraint> constraint1;
                         list<Constraint> constraint2;
                         bool succ = addModifiedBarrierConstraints(a1, a2, Rs, Rg, s1, s2,
@@ -217,31 +118,24 @@ shared_ptr<Conflict> RectangleReasoning::findRectangleConflict(const vector<Path
                                 rectangle->priority = conflict_priority::NON;
                         }
                     }
-                }//end for loop for (int t2_end : g2s)
+                }
             }
-        } //end for loop for (int t1_end : g1s)
+        }
     }
 
     return rectangle;
 }
 // for GR
-//pending change due to mdd add rotation
-//modify now
 shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const vector<Path*>& paths, int timestep,
                                                                            int a1, int a2, const MDD* mdd1, const MDD* mdd2)
 {
 	int conflict_location = paths[a1]->at(timestep).location;
-    int conflict_direction = paths[a1]->at(timestep).direction;
-	MDDNode multiple_visits(-1, -1, nullptr);
-
-    
+	MDDNode multiple_visits(-1, nullptr);
 	// project MDDs to the 2D space
-    // in rotation, no need to modify to *4, because the conflict is happend in location not direction
 	vector<MDDNode*> visit_times1(instance.map_size, nullptr);
 	vector<MDDNode*> visit_times2(instance.map_size, nullptr);
 	projectMDD2Map(visit_times1, mdd1, &multiple_visits);
 	projectMDD2Map(visit_times2, mdd2, &multiple_visits);
-
 	if (visit_times1[conflict_location]  == &multiple_visits || visit_times2[conflict_location] == &multiple_visits)
 		return nullptr;
 
@@ -251,7 +145,7 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	vector<bool> overlap_area(instance.map_size, false);
 	pair<int, int> Rs(paths[a1]->at(timestep - 1).location, conflict_location), Rg(conflict_location, conflict_location);
 	findOverlapArea(conflict_location, overlap_area, visit_times1, visit_times2, entry1, entry2, exit1, exit2, Rs, Rg, &multiple_visits);
-    // TODO:: it seems that we do not need exits.
+	// TODO:: it seems that we do not need exits.
 	if (Rs.second == Rg.first) // The overlap area only contains a single location
 		return  nullptr;
 
@@ -260,11 +154,13 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	pair<int, int> R1 = Rs, R2 = Rs;
 	if(!scanPerimeter(stage, overlap_area, Rs, Rg, R1, R2, entry1, entry2))
 		return nullptr;
+
 	// check holes
 	if (!checkHoles(entry1, entry2, overlap_area, Rs))
 		return nullptr;
 	if (!checkHoles(entry2, entry1, overlap_area, Rs))   // TODO:: it seems that we do not need this step?
 		return nullptr;
+
 
 	// generate constraints
 	list<Constraint> constraint1, constraint2;
@@ -280,13 +176,11 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	}
 	if (!blocked(*paths[a1], constraint1) || !blocked(*paths[a2], constraint2))
 		return nullptr;
+
 	bool cardinal1 = blocked(*mdd1, constraint1);
 	bool cardinal2 = blocked(*mdd2, constraint2);
 	auto rectangle = make_shared<Conflict>();
-    // if (cardinal2 && !cardinal1)
-    //     rectangle->rectangleConflict(a2, a1, constraint2, constraint1);
-    // else
-	    rectangle->rectangleConflict(a1, a2, constraint1, constraint2);
+	rectangle->rectangleConflict(a1, a2, constraint1, constraint2);
 	if (cardinal1 && cardinal2)
 		rectangle->priority = conflict_priority::CARDINAL;
 	else if (cardinal1 || cardinal2) 
@@ -316,18 +210,12 @@ bool RectangleReasoning::blocked(const MDD& mdd, const list<Constraint>& constra
 	std::stack<MDDNode*> open_list;
 	set<MDDNode*> visited;
 	open_list.push(mdd.levels.back().back());
-    //something wrong with the while loop, do it tomorrow
 	while (!open_list.empty())
 	{
 		auto curr = open_list.top();
 		open_list.pop();
-        //std::cout<<"test1"<<std::endl;
-        
 		if (curr == mdd.levels.front().front())
 			return false;
-        //std::cout<<"test2"<<std::endl;
-        //std::cout<<mdd.levels.front().front()->location<<" "<<curr->location<<std::endl;
-        //std::cout<<curr->parents.size()<<std::endl;
 		for (auto next : curr->parents)
 		{
 			// assert(next->location >= 0 && next->location < instance.map_size);
@@ -337,92 +225,17 @@ bool RectangleReasoning::blocked(const MDD& mdd, const list<Constraint>& constra
 				visited.insert(next);
 			}
 		}
-        //std::cout<<"test3"<<std::endl;
 	}
 	return true;
 }
 
-int RectangleReasoning::getTurning(const pair<int, int>& start, const pair<int, int>& goal, int sd, int gd)
-{
-    int d1 = -1;
-    int d2 = -1;
-    if (start.first < goal.first)
-    {
-        d1 = 2;
-    }
-    if (start.first > goal.first)
-    {
-        d1 = 0;
-    }
-    if (start.second < goal.second)
-    {
-        d2 = 1;
-    }
-    if (start.second > goal.second)
-    {
-        d2 = 3;
-    }
-    if(d1 != -1 && d2 != -1)
-    {
-        if (gd == -1)
-        {
-            return (min(abs(sd-d1), abs(sd-d2)) + 1);
-        }
-        return (min(abs(sd-d1) + abs(gd-d2), abs(sd-d2) + abs(gd-d1)) + 1);
-    }
-    else if (d1 == -1 && d2 == -1)
-    {
-        if (gd == -1)
-        {
-            return 0;
-        }
-        return abs(sd-gd);
-    }
-    else if (d1 == -1)
-    {
-        if (gd == -1)
-        {
-            return abs(sd-d2);
-        }
-        return (abs(sd-d2) + abs(gd-d2));
-    }
-    else
-    {
-        if (gd == -1)
-        {
-            return abs(sd-d1);
-        }
-        return (abs(sd-d1) + abs(gd-d1));
-    }
-}
-
-//Identify rectangle conflicts for CR+Rotation
-bool RectangleReasoning::isRectangleConflict(const pair<int, int>& s1, const pair<int, int>& s2,
-											 const pair<int, int>& g1, const pair<int, int>& g2, const int ds1, const int dg1, const int ds2, const int dg2, int g1_t, int g2_t)
-{
-    //add turning here
-    //need to figure out the time step to enter the rectangle
-    //test
-    // std::cout<<"1 "<<g1_t<<" "<<abs(s1.first - g1.first) + abs(s1.second - g1.second) + getTurning(s1,g1,ds1,dg1)<<std::endl;
-    // std::cout<<"2 "<<g2_t<<" "<<abs(s2.first - g2.first) + abs(s2.second - g2.second) + getTurning(s2,g2,ds2,dg2)<<std::endl;
-    int mg1 = abs(s1.first - g1.first) + abs(s1.second - g1.second) + getTurning(s1,g1,ds1,dg1);
-    int mg2 = abs(s2.first - g2.first) + abs(s2.second - g2.second) + getTurning(s2,g2,ds2,dg2);
-	return g1_t == mg1 &&  // Manhattan-optimal
-		   g2_t == mg2 && // Manhattan-optimal
-		   (s1.first - g1.first) * (s2.first - g2.first) >= 0 &&  //Move in the same direction
-		   (s1.second - g1.second) * (s2.second - g2.second) >= 0; //Move in the same direction
-}
 
 //Identify rectangle conflicts for CR/R
 bool RectangleReasoning::isRectangleConflict(const pair<int, int>& s1, const pair<int, int>& s2,
 											 const pair<int, int>& g1, const pair<int, int>& g2, int g1_t, int g2_t)
 {
-    int mg1 = abs(s1.first - g1.first) + abs(s1.second - g1.second) + getTurning(s1,g1,0,0);
-    int mg2 = abs(s2.first - g2.first) + abs(s2.second - g2.second) + getTurning(s2,g2,0,0);
-    return g1_t == g1_t &&  // Manhattan-optimal
-		   g2_t == g2_t && // Manhattan-optimal
-	// return g1_t == abs(s1.first - g1.first) + abs(s1.second - g1.second) &&  // Manhattan-optimal
-	// 	   g2_t == abs(s2.first - g2.first) + abs(s2.second - g2.second) && // Manhattan-optimal
+	return g1_t == abs(s1.first - g1.first) + abs(s1.second - g1.second) &&  // Manhattan-optimal
+		   g2_t == abs(s2.first - g2.first) + abs(s2.second - g2.second) && // Manhattan-optimal
 		   (s1.first - g1.first) * (s2.first - g2.first) >= 0 &&  //Move in the same direction
 		   (s1.second - g1.second) * (s2.second - g2.second) >= 0; //Move in the same direction
 }
@@ -523,13 +336,12 @@ pair<int, int> RectangleReasoning::getRg(const pair<int, int>& s1, const pair<in
 }
 
 //Compute start candidates for RM
-//return the singleton timestep
 list<int> RectangleReasoning::getStartCandidates(const vector<PathEntry>& path, int timestep)
 {
 	list<int> starts;
 	for (int t = 0; t <= timestep; t++) //Find start that is single and Manhattan-optimal to conflicting location
 	{
-		if (path[t].is_single_raw() && instance.getManhattanDistance(path[t].location, path[timestep].location, path[t].direction, path[timestep].direction) == timestep - t)
+		if (path[t].is_single() && instance.getManhattanDistance(path[t].location, path[timestep].location) == timestep - t)
 			starts.push_back(t);
 	}
 	return starts;
@@ -541,7 +353,7 @@ list<int> RectangleReasoning::getGoalCandidates(const vector<PathEntry>& path, i
 	list<int> goals;
 	for (int t = (int)path.size() - 1; t >= timestep; t--) //Find end that is single and Manhattan-optimal to conflicting location
 	{
-		if (path[t].is_single_raw() && instance.getManhattanDistance(path[timestep].location, path[t].location,path[timestep].direction, path[t].direction) == t - timestep)
+		if (path[t].is_single() && instance.getManhattanDistance(path[t].location, path[timestep].location) == t - timestep)
 			goals.push_back(t);
 	}
 	return goals;
@@ -833,11 +645,6 @@ void RectangleReasoning::findOverlapArea(int conflict_location, vector<bool>& ov
                      visit_times2[next] != multiple_visits && visit_times2[next] != nullptr &&
                      visit_times1[next]->level == visit_times2[next]->level)
             {
-                // if (next == 331)
-                // {
-                //     std::cout<<"test"<<std::endl;
-                //     std::cout<<visit_times1[next]<<visit_times2[next]<<std::endl;
-                // }
                 open_list.push(next);
                 overlap_area[next] = true;
                 continue;
@@ -887,7 +694,6 @@ void RectangleReasoning::findOverlapArea(int conflict_location, vector<bool>& ov
         }
     }
 }
-
 bool RectangleReasoning::scanPerimeter(int& stage, const vector<bool>& overlap_area,
                                        const pair<int, int>& Rs, const pair<int, int>& Rg,
                                        pair<int, int>& R1, pair<int, int>& R2,

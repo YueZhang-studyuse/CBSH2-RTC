@@ -130,24 +130,31 @@ int main(int argc, char** argv)
 	int runs = vm["restart"].as<int>();
 
 
-
 	//////////////////////////////////////////////////////////////////////
 	/// initialize the solver
     //////////////////////////////////////////////////////////////////////
-	//disable heuristics
-	CBS cbs(instance, false, vm["screen"].as<int>()); //no sipp
-	//cbs.setPrioritizeConflicts(vm["prioritizingConflicts"].as<bool>()); 
-	cbs.setPrioritizeConflicts(true); //no prioritized conflicts
-	cbs.setDisjointSplitting(false); //no disjoint splitting
-	cbs.setBypass(true); //no bypass
-	cbs.setRectangleReasoning(rectangle_strategy::GR); //no rectangle reasoning
-	cbs.setCorridorReasoning(corridor_strategy::GC); //no corridor reasoning
-	cbs.setHeuristicType(heuristics_type::WDG); //no heuristics
-	cbs.setTargetReasoning(true); 
-	cbs.setMutexReasoning(false); //no mutex reasoning
+	CBS cbs(instance, vm["sipp"].as<bool>(), vm["screen"].as<int>());
+	cbs.setPrioritizeConflicts(vm["prioritizingConflicts"].as<bool>());
+	cbs.setDisjointSplitting(vm["disjointSplitting"].as<bool>());
+	cbs.setBypass(true);
+	cbs.setRectangleReasoning(r);
+	cbs.setCorridorReasoning(c);
+	cbs.setHeuristicType(heuristics_type::WDG);
+	cbs.setTargetReasoning(vm["targetReasoning"].as<bool>());
+	cbs.setMutexReasoning(vm["mutexReasoning"].as<bool>());
 	cbs.setSavingStats(vm["stats"].as<bool>());
 	cbs.setNodeLimit(vm["nodeLimit"].as<int>());
-	//
+
+	// cbs.setPrioritizeConflicts(true);
+	// cbs.setDisjointSplitting(vm["disjointSplitting"].as<bool>());
+	// cbs.setBypass(false);
+	// cbs.setRectangleReasoning(rectangle_strategy::NR);
+	// cbs.setCorridorReasoning(corridor_strategy::C);
+	// cbs.setHeuristicType(heuristics_type::ZERO);
+	// cbs.setTargetReasoning(false);
+	// cbs.setMutexReasoning(false);
+	// cbs.setSavingStats(vm["stats"].as<bool>());
+	// cbs.setNodeLimit(vm["nodeLimit"].as<int>());
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -179,7 +186,8 @@ int main(int argc, char** argv)
 	}
     if (cbs.solution_found && vm.count("outputPaths"))
         cbs.savePaths(vm["outputPaths"].as<string>());
-	
+
+	cbs.saveCT("test_noprune.dot");
 	cbs.clearSearchEngines();
 	return 0;
 

@@ -3,7 +3,7 @@
 #include "MDD.h"
 
 // no rectangle, rectangle, rectangle with MDDs, generalized rectangle, disjoint rectangle
-enum rectangle_strategy { NR, R, RM, GR, DR};
+enum rectangle_strategy { NR, R, RM, GR, DR };
 
 class RectangleReasoning
 {
@@ -41,16 +41,12 @@ public:
 private:
 	const Instance& instance;
 
-	// shared_ptr<Conflict> findCardinalRectangleConflict(const vector<Path*>& paths, int timestep, int a1, int a2);
     shared_ptr<Conflict> findRectangleConflict(const vector<Path*>& paths, int timestep, int a1, int a2); // R: find rectangle only for entire paths
 	shared_ptr<Conflict> findRectangleConflict(const vector<Path*>& paths, int timestep,
                                                int a1, int a2, const MDD* mdd1, const MDD* mdd2);  // RM: find rectangle for path segments
 	shared_ptr<Conflict> findGenerealizedRectangleConflict(const vector<Path*>& paths, int timestep,
                                                            int a1, int a2, const MDD* mdd1, const MDD* mdd2);
 
-	//for roation
-	static int getTurning(const pair<int, int>& start, const pair<int, int>& goal, int sd, int gd);
-	static bool isRectangleConflict(const pair<int, int>& s1, const pair<int, int>& s2, const pair<int, int>& g1, const pair<int, int>& g2, const int ds1, const int dg1, const int ds2, const int dg2, int g1_t, int g2_t);
 	//Identify rectangle conflicts
 	static bool isRectangleConflict(const pair<int, int>& s1, const pair<int, int>& s2,
 		    const pair<int, int>& g1, const pair<int, int>& g2, int g1_t, int g2_t);// for CR and R

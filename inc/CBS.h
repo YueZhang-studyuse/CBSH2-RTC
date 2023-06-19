@@ -33,18 +33,7 @@ public:
 	uint64_t num_LL_expanded = 0;
 	uint64_t num_LL_generated = 0;
 
-	//debug for target
-	uint64_t target_failed = 0;
-	uint64_t target_follow_up = 0;
-
-	uint64_t rect_failed = 0;
-	uint64_t rect_follow_up = 0;
-
-	uint64_t corridor_failed = 0;
-	uint64_t corridor_follow_up = 0;
-
-	uint64_t num_HL_full_pruned = 0;
-	uint64_t num_HL_pruned = 0;
+	uint64_t num_HL_reinsert = 0;
 
 
 	CBSNode* dummy_start = nullptr;
@@ -57,13 +46,9 @@ public:
 	double min_f_val;
 	double focal_list_threshold;
 
-	bool pruning = true;
-	double runtime_prune_check = 0;
+	int timeout_constraint = -1;
 
-	//constraints
-	// define typedef for hash_map
-	// typedef unordered_map<Constraint, list<CBSNode*>, ConstraintHasher, eqconstraint> hashtable_c;
-	// hashtable_c global_constraints;
+	bool pruning = true;
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// set params
@@ -173,6 +158,6 @@ private:
 	inline int getAgentLocation(int agent_id, size_t timestep) const;
 	inline void pushNode(CBSNode* node);
 
-	//pruning
 	bool checkSubsumption(CBSNode* n1, CBSNode* n2);
+	bool checkSubsumption(CBSNode* n1, CBSNode* n2, list<Constraint> cons);
 };

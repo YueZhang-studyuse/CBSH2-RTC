@@ -5,17 +5,14 @@
 
 enum conflict_type { MUTEX, TARGET, CORRIDOR, RECTANGLE, STANDARD, TYPE_COUNT };
 
-enum conflict_priority {CARDINAL, SEMI, NON, UNKNOWN, PRIORITY_COUNT };
+enum conflict_priority { CARDINAL, SEMI, NON, UNKNOWN, PRIORITY_COUNT };
 // Pseudo-cardinal conflicts are semi-/non-caridnal conflicts between dependent agents. 
 // We prioritize them over normal semi-/non-caridnal conflicts 
 
 enum constraint_type { LEQLENGTH, GLENGTH, RANGE, BARRIER, VERTEX, EDGE, 
-											POSITIVE_VERTEX, POSITIVE_EDGE, POSITIVE_BARRIER, POSITIVE_RANGE};
+											POSITIVE_VERTEX, POSITIVE_EDGE, POSITIVE_BARRIER, POSITIVE_RANGE };
 
-
-enum conflict_prune_priority {SEEN, NEW, PRUNED, PRUNE_COUNT};
-enum conflict_target_priority {Greater_THAN_TWO, TARGET_STANDARD , TARGETPC_COUNT};
-
+enum conflict_prune_priority {PRUNED,SEEN, NEW, PRUNE_COUNT };
 
 // enum conflict_selection {RANDOM, EARLIEST, CONFLICTS, MCONSTRAINTS, FCONSTRAINTS, WIDTH, SINGLETONS, AGENTID};
 
@@ -27,10 +24,6 @@ typedef std::tuple<int, int, int, int, constraint_type> Constraint;
 // <agent, loc, t1, t2, CORRIDOR> 
 // <agent, loc, -1, t, LEQLENGTH>: path of agent_id should be of length at most t, and any other agent cannot be at loc at or after timestep t
 // <agent, loc, -1, t, GLENGTH>: path of agent_id should be of length at least t + 1
-
-//<agent, loc, direct, t, DIRECT_VERTEX>
-
-
 
 std::ostream& operator<<(std::ostream& os, const Constraint& constraint);
 
@@ -47,17 +40,6 @@ public:
 	double secondary_priority = 0; // used as the tie-breaking criteria for conflict selection
 
 	conflict_prune_priority prune_priority = conflict_prune_priority::NEW;
-	conflict_target_priority target_pc = conflict_target_priority::TARGET_STANDARD;
-
-	//debug for target-follow-up conflict
-	bool target_failed = false;
-	bool target_follow_up = false;
-
-	bool rect_failed = false;
-	bool rect_follow_up = false;
-
-	bool corridor_failed = false;
-	bool corridor_follow_up = false;
 
 	void vertexConflict(int _a1, int _a2, int v, int t)
 	{
@@ -85,8 +67,8 @@ public:
 	{
 		this->a1 = _a1;
 		this->a2 = _a2;
-		this->constraint1 = _constraint1;
-		this->constraint2 = _constraint2;
+		this->constraint1 = _constraint2;
+		this->constraint2 = _constraint1;
 		type = conflict_type::CORRIDOR;
 	}
 

@@ -23,8 +23,8 @@ public:
 		bool operator()(const CBSNode* n1, const CBSNode* n2) const 
 		{
 			if (n1->tie_breaking == n2->tie_breaking)
-				//return 0;
-				return rand() % 2;
+				return 0;
+				//return rand() % 2;
 			return n1->tie_breaking >= n2->tie_breaking;
 		}
 	};  // used by FOCAL to compare nodes by tie_breaking value (top of the heap has min tie_breaking value)
@@ -44,6 +44,7 @@ public:
 		}
 	};
 
+	// conflicts in the current paths
 	list<shared_ptr<Conflict>> conflicts;
 	list<shared_ptr<Conflict>> unknownConf;
 
@@ -56,6 +57,7 @@ public:
 	list<pair<int, Path>> paths; // new paths
 	list<Constraint> constraints; // new constraints
 
+
 	int g_val;
 	int h_val;
 	int depth; // depth of this CT node
@@ -66,6 +68,7 @@ public:
 	uint64_t time_expanded;
 	uint64_t time_generated;
 
+	//what else I need for prune?
 	//For chosen which pair of node to identify
 	CBSNode* leftChild = nullptr;//The left child
 	CBSNode* rightChild = nullptr;//The right child
@@ -76,6 +79,7 @@ public:
 	
 	//For help identification
 	vector<int>path_costs;//Path cost for each node
+	//All constraint set maybe? -not do yet
 
 
 	void clear();

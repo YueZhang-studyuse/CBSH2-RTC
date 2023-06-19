@@ -29,12 +29,6 @@ public:
 	uint64_t num_solve_2agent_problems = 0;
 	uint64_t num_memoization = 0; // number of times when memeorization helps
 
-	uint64_t num_heuristic_full_prune = 0;
-	uint64_t num_heuristic_prune = 0;
-	uint64_t num_2agent_expansions = 0;
-
-	
-
 	 //stats
 	list<tuple<int, int, const CBSNode*, uint64_t, int> > sub_instances; 	// <agent 1, agent 2, node, number of expanded CT nodes, h value> 
 

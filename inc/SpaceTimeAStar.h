@@ -17,8 +17,8 @@ public:
 
 	AStarNode() : LLNode() {}
 
-	AStarNode(int loc, int direction, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
-		LLNode(loc,direction, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist) {}
+	AStarNode(int loc, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts = 0, bool in_openlist = false) :
+		LLNode(loc, g_val, h_val, parent, timestep, num_of_conflicts, in_openlist) {}
 
 	/*AStarNode(const AStarNode& other)
 	{
@@ -42,11 +42,7 @@ public:
 		{
 			size_t loc_hash = std::hash<int>()(n->location);
 			size_t timestep_hash = std::hash<int>()(n->timestep);
-			//temp hash method
-			size_t original_hash = loc_hash ^ (timestep_hash << 1);
-			size_t direction_hash = std::hash<int>()(n->cur_direction);
-			//direction only have 4 values (occupies 2 bit)
-			return (original_hash<<2) | direction_hash;
+			return (loc_hash ^ (timestep_hash << 1));
 		}
 	};
 
@@ -61,7 +57,6 @@ public:
 					s1->location == s2->location &&
 					s1->timestep == s2->timestep &&
 					s1->wait_at_goal == s2->wait_at_goal) &&
-					s1->cur_direction == s2->cur_direction &&
 					s1->unsatisfied_positive_constraint_sets == s2->unsatisfied_positive_constraint_sets;
 		}
 	};
@@ -78,9 +73,9 @@ public:
 	Path findPath(const CBSNode& node, const ConstraintTable& initial_constraints,
 				  const vector<Path*>& paths, int agent, int lower_bound);
 
-	int getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound);
-	int getTravelTime(int end, int direction, int block_direcion,int block_timestep, const ConstraintTable& constraint_table, int upper_bound);
+	int getTravelTime(int end, const ConstraintTable& constraint_table, int upper_bound);
 	bool checkReachable(int end, const ConstraintTable& constraint_table, int timestep);
+
 	string getName() const { return "AStar"; }
 
 	SpaceTimeAStar(const Instance& instance, int agent) :
