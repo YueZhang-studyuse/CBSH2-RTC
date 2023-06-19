@@ -283,7 +283,10 @@ shared_ptr<Conflict> RectangleReasoning::findGenerealizedRectangleConflict(const
 	bool cardinal1 = blocked(*mdd1, constraint1);
 	bool cardinal2 = blocked(*mdd2, constraint2);
 	auto rectangle = make_shared<Conflict>();
-	rectangle->rectangleConflict(a1, a2, constraint1, constraint2);
+    // if (cardinal2 && !cardinal1)
+    //     rectangle->rectangleConflict(a2, a1, constraint2, constraint1);
+    // else
+	    rectangle->rectangleConflict(a1, a2, constraint1, constraint2);
 	if (cardinal1 && cardinal2)
 		rectangle->priority = conflict_priority::CARDINAL;
 	else if (cardinal1 || cardinal2) 

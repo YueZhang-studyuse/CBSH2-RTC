@@ -245,6 +245,7 @@ int CBSHeuristic::solve2Agents(int a1, int a2, const CBSNode& node, bool cardina
 	cbs.setTargetReasoning(target_reasoning);
 	cbs.setMutexReasoning(mutex_reasoning);
 	cbs.setNodeLimit(node_limit);
+	cbs.pruning = true;
 
 	double runtime = (double)(clock() - start_time) / CLOCKS_PER_SEC;
 	int root_g = (int)initial_paths[0].size() - 1 + (int)initial_paths[1].size() - 1;
@@ -254,6 +255,35 @@ int CBSHeuristic::solve2Agents(int a1, int a2, const CBSNode& node, bool cardina
 		lowerbound += 1;
 	cbs.solve(time_limit - runtime, lowerbound, upperbound);
 	num_solve_2agent_problems++;
+	num_2agent_expansions += cbs.num_HL_expanded;
+	num_heuristic_full_prune += cbs.num_HL_full_pruned;
+	num_heuristic_prune += cbs.num_HL_pruned;
+
+
+	// initial_paths[0] = *paths[a1];
+	// initial_paths[1] = *paths[a2];
+
+	// CBS cbs2(engines, constraints, initial_paths, screen);
+	// cbs2.setPrioritizeConflicts(PC);
+	// cbs2.setHeuristicType(heuristics_type::CG);
+	// cbs2.setDisjointSplitting(disjoint_splitting);
+	// cbs2.setBypass(false); // I guess that bypassing does not help two-agent path finding???
+	// cbs2.setRectangleReasoning(rectangle_reasoning);
+	// cbs2.setCorridorReasoning(corridor_reasoning);
+	// cbs2.setTargetReasoning(target_reasoning);
+	// cbs2.setMutexReasoning(mutex_reasoning);
+	// cbs2.setNodeLimit(MAX_NODES);
+	// cbs2.pruning = true;
+	// cbs2.solve(1200, lowerbound, upperbound);
+
+	//std::cout<<"error "<<cbs.solution_cost<<std::endl;
+
+	// if (cbs.solution_cost != cbs2.solution_cost)
+	// {
+	// 	std::cout<<"error "<<cbs.solution_cost<<" "<<cbs2.solution_cost<<std::endl;
+	// 	std::cout<<"agent"<<a1<<" "<<a2<<std::endl;
+	// }
+	
 	int rst;
 	if (cbs.runtime > time_limit - runtime || cbs.num_HL_expanded > node_limit) // time out or node out
 		rst = (int)cbs.min_f_val - root_g; // using lowerbound to approximate

@@ -297,10 +297,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 	lower_bound = max(holding_time - start_state.second, max(min_f_val, lowerbound));
 
 	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
-	//test
-	//std::cout<<"start: "<<start_location<<std::endl;
-
-	//std::cout<<"c3"<<std::endl;
+	
 	while (!open_list.empty())
 	{
 		updateFocalList(); // update FOCAL if min f-val increased
@@ -320,9 +317,9 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 			continue;
 
 		//list<int> next_locations = instance.getNeighbors(curr->location);
-		list<pair<int,int>> next_states = instance.getNeighbors(curr->location,curr->cur_direction);
+		//list<pair<int,int>> next_states = instance.getNeighbors(curr->location,curr->cur_direction);
 		
-		int turning_count = 0;
+		//int turning_count = 0;
 		for (int i = 0; i < 4; i++)
 		{
 			int next_location = curr->location;
@@ -414,7 +411,7 @@ Path SpaceTimeAStar::findShortestPath(ConstraintTable& constraint_table, const p
 				{
 					continue;
 				}
-				next_timestep--;
+				next_timestep = curr->timestep;
 			}
 
 			if (constraint_table.constrained(next_location, next_timestep) ||
@@ -1014,6 +1011,108 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, int block_direcion,int
 	releaseNodes();
 	return length;
 }
+
+bool SpaceTimeAStar::checkReachable(int end, const ConstraintTable& constraint_table, int timestep)
+{
+	if (constraint_table.length_min >= MAX_TIMESTEP || constraint_table.length_min > constraint_table.length_max || // the agent cannot reach its goal location
+		constraint_table.constrained(start_location, 0)) // the agent cannot stay at its start location
+	{
+		return false;
+	}
+	if (constraint_table.constrained(end, timestep))
+	{
+		return false;
+	}
+
+	int start_h = compute_heuristic(start_location,start_direction, end,0);
+	for (int i = 1; i < 4; i++)
+	{
+		int temp = compute_heuristic(start_location,start_direction, end,i);
+		if (temp < start_h)
+		{
+			start_h = temp;
+		}
+	}
+
+	auto root = new AStarNode(start_location,start_direction, 0, start_h, nullptr, 0);
+	root->open_handle = open_list.push(root);  // add root to heap
+	allNodes_table.insert(root);       // add root to hash_table (nodes)
+
+	AStarNode* curr = nullptr;
+	int moves_forward_offset[] = {-instance.getCols(),1,instance.getCols(),-1};
+
+	while (!open_list.empty())
+	{
+		curr = open_list.top(); open_list.pop();
+		if (curr->location == end && curr->g_val == timestep)
+		{
+			releaseNodes();
+			return true;
+		}
+		//we want the children's g+h = f <= timestep
+		//therefore is curr's g+h+1 <= timestep
+		int heuristicBound = timestep - curr->g_val - 1;
+		list<int> next_locations = instance.getNeighbors(curr->location);
+		next_locations.emplace_back(curr->location);
+		//try every possible move
+		//for (int next_location : next_locations)
+		for (int i = 0; i < 4; i++)
+		{
+			int next_location = curr->location;
+			if (i == 1)
+			{
+				next_location = curr->location + moves_forward_offset[curr->cur_direction];
+			}
+			int current_direction = curr->cur_direction;
+			int next_direction = current_direction;
+			if(i == 2)
+			{
+				next_direction = current_direction - 1;
+				if (next_direction == -1){
+					next_direction = 3;
+				}
+			}else if(i == 3){
+				next_direction = (current_direction + 1)%4;
+			}
+			int next_h = compute_heuristic(next_location,next_direction, end,0);
+			for (int i = 1; i < 4; i++)
+			{
+				int temp = compute_heuristic(next_location,next_direction, end,i);
+				if (temp < next_h)
+				{
+					next_h = temp;
+				}
+			}
+			if (next_h <= heuristicBound && 
+				!constraint_table.constrained(next_location, curr->g_val+1) &&
+				!constraint_table.constrained(curr->location, next_location, curr->g_val+1)) //valid move
+			{
+				auto next = new AStarNode(next_location,next_direction, curr->g_val+1, next_h, curr, curr->g_val+1);
+				auto it = allNodes_table.find(next);
+				if (it == allNodes_table.end())
+				{  // add the newly generated node to heap and hash table
+					next->open_handle = open_list.push(next);
+					allNodes_table.insert(next);
+				}
+				else
+				{  // update existing node's g_val if needed (only in the heap)
+					delete next;  // not needed anymore -- we already generated it before
+					auto existing_next = *it;
+					if (existing_next->g_val > curr->g_val+1)
+					{
+						existing_next->g_val = curr->g_val+1;
+						// existing_next->timestep = next_timestep; // Idon't think we need this?
+						open_list.increase(existing_next->open_handle);
+					}
+				}
+				
+			}
+		}
+	}
+	releaseNodes();
+	return false;
+}
+
 //related to coridor reasoning, pending modification
 int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable& constraint_table, int upper_bound)
 {
@@ -1050,31 +1149,11 @@ int SpaceTimeAStar::getTravelTime(int end, int direction, const ConstraintTable&
 	while (!open_list.empty())
 	{
 		curr = open_list.top(); open_list.pop();
-		//curr->in_openlist = false;
-		// if (curr->location == end && direction != -1)
-		// {
-		// 	std::cout<<curr->location<<" "<<curr->cur_direction<<" "<<end<<" "<<direction<<std::endl;
-		// }
 		if ((curr->location == end && direction == -1) || (curr->location == end && curr->cur_direction == direction))
-		//if (curr->location == end)
 		{
-			//std::cout<<curr->parent->location<<std::endl;
 			length = curr->g_val;
-			// if (direction != -1)
-			// {
-			// 	length = length + (curr->cur_direction-direction)%3;
-			// }
 			break;
 		}
-		//list<int> next_locations = instance.getNeighbors(curr->location);
-		
-		// int next_timestep = curr->timestep;
-		// int next_g_val = curr->g_val + 1;
-		// if (constraint_table.latest_timestep > curr->timestep)
-		// {
-		// 	next_locations.emplace_back(curr->location); // wait action
-		// 	next_timestep++;
-		// }
 		int next_timestep = curr->timestep + 1;
 		for (int i = 0; i < 4; i++)
 		{

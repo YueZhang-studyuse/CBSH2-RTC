@@ -18,15 +18,18 @@ shared_ptr<Conflict> MutexReasoning::run(const vector<Path*> & paths, int a1, in
 shared_ptr<Conflict> MutexReasoning::findMutexConflict(const vector<Path*> & paths, int a1, int a2,
 													   CBSNode& node, MDD* mdd_1, MDD* mdd_2)
 {
-	assert(a1 < a2); //a1 smaller than a2
+	assert(a1 < a2);
 	ConstraintsHasher c_1(a1, &node);
 	ConstraintsHasher c_2(a2, &node);
 	if (has_constraint(c_1, c_2))
 		return find_applicable_constraint(c_1, c_2, paths);
+
   	shared_ptr<Conflict> mutex_conflict = nullptr;
+
 	ConstraintPropagation cp(mdd_1, mdd_2);
   	cp.init_mutex();
   	cp.fwd_mutex_prop();
+
 	if (cp._feasible(mdd_1->levels.size() - 1, mdd_2->levels.size() - 1) >= 0)
 	{
 		cache_constraint(c_1, c_2, nullptr);
@@ -46,12 +49,10 @@ shared_ptr<Conflict> MutexReasoning::findMutexConflict(const vector<Path*> & pat
 	ct1.build(node, a1);
 	ct2.build(node, a2);
 	auto ip = IPMutexPropagation(&mdd_1_cpy, &mdd_2_cpy, search_engines[a1], search_engines[a2], ct1, ct2);
-	// std::cout<<"size"<<std::endl;
-	// std::cout<<mdd_1_cpy.levels.size()<<" "<<mdd_2_cpy.levels.size()<<std::endl;
-	// std::cout<<mdd_1->levels.size()<<" "<<mdd_2->levels.size()<<std::endl;
 	con_vec a;
 	con_vec b;
 	std::tie(a, b) = ip.gen_constraints();
+
 	for (auto con:a)
 	{
 		get<0>(con) = a1;
@@ -66,6 +67,7 @@ shared_ptr<Conflict> MutexReasoning::findMutexConflict(const vector<Path*> & pat
 
 	//mutex_conflict->final_len_1 = ip.final_len_0;
 	//mutex_conflict->final_len_2 = ip.final_len_1;
+
 	cache_constraint(c_1, c_2, mutex_conflict);
 
 	// prepare for return

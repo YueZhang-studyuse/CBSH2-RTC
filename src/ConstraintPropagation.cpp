@@ -109,25 +109,19 @@ void ConstraintPropagation::init_mutex()
 	for (int i = 0; i < num_level; i++)
 	{
 		// COMMENT unordered map can be changed to vector for efficiency
-		auto loc2mdd = collectMDDlevel(mdd0, i); //loc2mdd is <loc, list<mdd>>
+		auto loc2mdd = collectMDDlevel(mdd0, i);
 		for (MDDNode* it_1 : mdd1->levels[i])
 		{
 			if (loc2mdd.find(it_1->location) != loc2mdd.end())
 			{
-        //need to add all nodes with the same location
-        for (auto node: loc2mdd[it_1->location])
-        //auto node = loc2mdd[it_1->location];
-				  add_fwd_node_mutex(node, it_1); //initial node mutex
+				add_fwd_node_mutex(loc2mdd[it_1->location], it_1);
 			}
 		}
 	}
 	// edge mutex
 
-	//unordered_map<int, MDDNode*> loc2mddThisLvl;
-	//unordered_map<int, MDDNode*> loc2mddNextLvl = collectMDDlevel(mdd1, 0);
-
-  unordered_map<int, list<MDDNode*>> loc2mddThisLvl;
-	unordered_map<int, list<MDDNode*>> loc2mddNextLvl = collectMDDlevel(mdd1, 0);
+	unordered_map<int, MDDNode*> loc2mddThisLvl;
+	unordered_map<int, MDDNode*> loc2mddNextLvl = collectMDDlevel(mdd1, 0);
 
 	for (int i = 0; i < num_level - 1; i++)
 	{
@@ -135,43 +129,29 @@ void ConstraintPropagation::init_mutex()
 		loc2mddNextLvl = collectMDDlevel(mdd1, i + 1);
 		for (auto& node_0 : mdd0->levels[i])
 		{
-			int loc_0 = node_0->location; //node 0 from location
+			int loc_0 = node_0->location;
 			if (loc2mddNextLvl.find(loc_0) == loc2mddNextLvl.end())
 			{
 				continue;
 			}
-      //modify here
-			//MDDNode* node_1_to = loc2mddNextLvl[loc_0];
-      //a list of candidate that has the same location with node 0 from
-      list<MDDNode*> node_1_tos = loc2mddNextLvl[loc_0]; //node 1 to location = node 0 from location
+			MDDNode* node_1_to = loc2mddNextLvl[loc_0];
 
-      //check node 0 to
-			for (auto node_0_to:node_0->children) //node 0 children is node 0 to, should be the same as node 1 from
+			for (auto node_0_to:node_0->children)
 			{
-				int loc_1 = node_0_to->location; //node 1 from = node 0 to
+				int loc_1 = node_0_to->location;
 				if (loc2mddThisLvl.find(loc_1) == loc2mddThisLvl.end())
 				{
 					continue;
 				}
 
-				//MDDNode* node_1 = loc2mddThisLvl[loc_1];
-        list<MDDNode*> nodes_1 = loc2mddThisLvl[loc_1]; // a list of candidate of node 1 that has the same location with node 0's children
-        // list<MDDNode*> nodes_1 = loc2mddThisLvl[loc_1]; //find matched with node 1 from
-        for (auto node_1:nodes_1) //check each node
-        {
-          for (auto ptr:node_1->children) //find node 1 to = node 
-          {
-            for (auto node_1_to: node_1_tos)
-            {
-              if (ptr->location == node_1_to->location && ptr->level == node_1_to->level)
-              {
-                add_fwd_edge_mutex(node_0, node_0_to, node_1, node_1_to);
-              }
-            }
-            
-          }
-        }
-				
+				MDDNode* node_1 = loc2mddThisLvl[loc_1];
+				for (auto ptr:node_1->children)
+				{
+					if (ptr == node_1_to)
+					{
+						add_fwd_edge_mutex(node_0, node_0_to, node_1, node_1_to);
+					}
+				}
 			}
 		}
 	}
@@ -180,6 +160,7 @@ void ConstraintPropagation::init_mutex()
 void ConstraintPropagation::fwd_mutex_prop()
 {
 	std::vector<boost::unordered_set<edge_pair> > to_check(max(mdd0->levels.size(), mdd1->levels.size()));
+
 	for (const auto & mutex: fwd_mutexes)
 	{
 		int l = mutex.first.first->level;
@@ -325,7 +306,6 @@ bool ConstraintPropagation::mutexed(int level_0, int level_1){
     std::cout << "ERROR!" << std::endl;
   }
 
-  std::cout<<"goal at by mutexed"<<std::endl;
   auto goal_ptr_i = mdd_s->goalAt(level_0);
 
   std::stack<MDDNode*> dfs_stack;
@@ -366,16 +346,18 @@ int ConstraintPropagation::_feasible(int level_0, int level_1){
     }
   }
   if (dfs_stack.empty()){
-    return -1; //pc
+    return -1;
   }
 
   // Using dfs to see is there any path lead to goal
+
 
   MDDNode* goal_ptr_j = mdd_l->goalAt(level_1);
 
   int not_allowed_loc = goal_ptr_i->location;
 
   boost::unordered_set<MDDNode*> closed;
+
   while (!dfs_stack.empty()){
     auto ptr = dfs_stack.top();
     dfs_stack.pop();
@@ -411,7 +393,6 @@ bool ConstraintPropagation::feasible(int level_0, int level_1)
 }
 
 std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagation::generate_constraints(int level_0, int level_1){
-
   MDD* mdd_s = mdd0;
   MDD* mdd_l = mdd1;
   bool reversed = false;
@@ -422,8 +403,9 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
     reversed = true;
   }
 
-  auto goal_ptr_i = mdd_s->goalAt(level_0);
+  // level_0 <= level_1
 
+  auto goal_ptr_i = mdd_s->goalAt(level_0);
 
   std::vector<MDDNode*> mutexed;
   std::vector<MDDNode*> non_mutexed;
@@ -437,14 +419,13 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
       }
     }
   }
-  //if (false){
+
   if (!non_mutexed.empty()){
     // AC
     int l = level_0;
     // std::vector<std::pair<int, int>> cons_vec_0;
     // std::vector<std::pair<int, int>> cons_vec_1;
-    boost::unordered_set<std::tuple<int,int, int>> cons_set_1;
-    boost::unordered_set<std::pair<int,int>> cons_goal_set_1;
+    boost::unordered_set<std::pair<int, int>> cons_set_1;
     boost::unordered_set<MDDNode*> level_i({goal_ptr_i});
     // boost::unordered_set<MDDNode*> level_j(non_mutexed.begin(), non_mutexed.end());
     boost::unordered_set<MDDNode*> level_j;
@@ -474,7 +455,7 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
           }
         }
         if (!non_all_mutexed){
-          cons_set_1.insert({l, ptr_j->location,ptr_j->direction});
+          cons_set_1.insert({l, ptr_j->location});
         }
       }
 
@@ -523,7 +504,7 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
           continue;
         }
         if (child_ptr->location == not_allowed_loc){
-          cons_goal_set_1.insert({child_ptr->level, child_ptr->location});
+          cons_set_1.insert({child_ptr->level, child_ptr->location});
           continue;
         }
         dfs_stack.push_front(child_ptr);
@@ -535,14 +516,7 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
 
     std::vector<Constraint>cons_vec_1;
     for (auto& it:cons_set_1){
-
-      cons_vec_1.push_back(Constraint(1, std::get<1>(it), std::get<2>(it), std::get<0>(it), constraint_type::DIRECT_VERTEX));
-    }
-    for (auto& it:cons_goal_set_1){
-      //if (non_mutex_1[it.first].find(it.second) == non_mutex_1[it.first].end())
-        //cons_vec_1.push_back(Constraint(1, it.second, -1, it.first, constraint_type::VERTEX));
-      //std::cout<<"constraint 1 "<<it.second<<" "<<it.first<<std::endl;
-      cons_vec_1.push_back(Constraint(1, it.second,-1, it.first, constraint_type::VERTEX));
+      cons_vec_1.push_back(Constraint(1, it.second, -1, it.first, constraint_type::VERTEX));
     }
     // std::vector<std::pair<int, int>> cons_vec_1(cons_set_1.begin(), cons_set_1.end());
     // cons_vec_1.push_back(Constraint(0, goal_ptr_i->location,  -1, level_0 - 1, constraint_type::LEQLENGTH));
@@ -554,9 +528,9 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
     return {{length_con}, cons_vec_1};
   }
 
+
   // goal nodes are mutexed
   boost::unordered_set<MDDNode*> cons_0, cons_1;
-  //vector<unordered_map<int,list<MDDNode*>>> cons_0, cons_1;
   boost::unordered_set<MDDNode*> blue_0, blue_1;
 
   for (int lvl = 0; lvl <= level_0; lvl ++){
@@ -587,11 +561,10 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
             has_non_blue_parent = true;
             break;
           }
-        } //blue means if all parents are mutex, then no need to block this node
+        }
 
         if (has_non_blue_parent){
           cons_0.insert(it_i);
-          //cons_0[it_i->level][it->location].push_back(it_i);
         }
       }
     }
@@ -625,16 +598,10 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
 	std::vector<Constraint> cons_vec_0;
 	std::vector<Constraint> cons_vec_1;
 
-
 	for (auto& it:cons_0)
-  {
-    cons_vec_0.push_back({0, it->location, it->direction, it->level, constraint_type::DIRECT_VERTEX});
-  }
-		
+		cons_vec_0.push_back({0, it->location, -1, it->level, constraint_type::VERTEX});
 	for (auto& it:cons_1)
-  {
-    cons_vec_1.push_back({1, it->location, it->direction, it->level, constraint_type::DIRECT_VERTEX});
-  }
+		cons_vec_1.push_back({1, it->location, -1, it->level, constraint_type::VERTEX});
 	if (reversed)
 		return {cons_vec_1, cons_vec_0};
 	return {cons_vec_0, cons_vec_1};

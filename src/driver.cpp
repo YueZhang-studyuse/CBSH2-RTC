@@ -130,21 +130,24 @@ int main(int argc, char** argv)
 	int runs = vm["restart"].as<int>();
 
 
+
 	//////////////////////////////////////////////////////////////////////
 	/// initialize the solver
     //////////////////////////////////////////////////////////////////////
 	//disable heuristics
 	CBS cbs(instance, false, vm["screen"].as<int>()); //no sipp
-	cbs.setPrioritizeConflicts(false); //no prioritized conflicts
+	//cbs.setPrioritizeConflicts(vm["prioritizingConflicts"].as<bool>()); 
+	cbs.setPrioritizeConflicts(true); //no prioritized conflicts
 	cbs.setDisjointSplitting(false); //no disjoint splitting
-	cbs.setBypass(false); //no bypass
-	cbs.setRectangleReasoning(rectangle_strategy::NR); //no rectangle reasoning
-	cbs.setCorridorReasoning(corridor_strategy::NC); //no corridor reasoning
-	cbs.setHeuristicType(heuristics_type::ZERO); //no heuristics
-	cbs.setTargetReasoning(false); //no target reasonging
+	cbs.setBypass(true); //no bypass
+	cbs.setRectangleReasoning(rectangle_strategy::GR); //no rectangle reasoning
+	cbs.setCorridorReasoning(corridor_strategy::GC); //no corridor reasoning
+	cbs.setHeuristicType(heuristics_type::WDG); //no heuristics
+	cbs.setTargetReasoning(true); 
 	cbs.setMutexReasoning(false); //no mutex reasoning
 	cbs.setSavingStats(vm["stats"].as<bool>());
 	cbs.setNodeLimit(vm["nodeLimit"].as<int>());
+	//
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -176,6 +179,7 @@ int main(int argc, char** argv)
 	}
     if (cbs.solution_found && vm.count("outputPaths"))
         cbs.savePaths(vm["outputPaths"].as<string>());
+	
 	cbs.clearSearchEngines();
 	return 0;
 

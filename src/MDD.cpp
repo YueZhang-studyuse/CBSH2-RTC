@@ -5,6 +5,7 @@
 
 void MDD::printNodes() const
 {
+	// std::cout<<"leveles "<<std::endl;
 	for (const auto& level : levels)
 	{
 		cout << "[";
@@ -14,7 +15,18 @@ void MDD::printNodes() const
 		}
 		cout << "]," << endl;
 	}
+
+	// for (const auto& level : prune_levels)
+	// {
+	// 	cout << "[";
+	// 	for (auto node : level)
+	// 	{
+	// 		cout << node->location<<"-"<<node->direction << ",";
+	// 	}
+	// 	cout << "]," << endl;
+	// }
 }
+
 
 // void MDD::printMergedNodes() const
 // {
@@ -56,6 +68,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 	open.push(root);
 	closed.push_back(root);
 	levels.resize(num_of_levels);
+	prune_levels.resize(num_of_levels);
 	while (!open.empty())
 	{
 		auto curr = open.front();
@@ -65,6 +78,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 		if (curr->level == num_of_levels - 1)
 		{
 			levels.back().push_back(curr);
+			prune_levels.back().push_back(curr);
 			assert(open.empty());
 			break;
 		}
@@ -173,9 +187,9 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 
 			if (solver->my_heuristic[next_location*4 + next_direction] <= heuristicBound &&
 				!ct.constrained(next_location, curr->level + 1) &&
-				!ct.constrained(curr->location, next_location, curr->level + 1)
+				!ct.constrained(curr->location, next_location, curr->level + 1))
 				//add direct constraint
-				&& !ct.vertex_direct_constrained(next_location,next_direction,curr->level+1)) // valid move
+				//&& !ct.vertex_direct_constrained(next_location,next_direction,curr->level+1)) // valid move
 			{
 				auto child = closed.rbegin();
 				bool find = false;
@@ -211,6 +225,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 			continue;
 		}
 		levels[num_of_levels - 2].push_back(parent);
+		prune_levels[num_of_levels - 2].push_back(parent);
 		parent->children.push_back(goal_node); // add forward edge	
 	}
 	if (del != nullptr)
@@ -224,6 +239,7 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 				if (parent->children.empty()) // a new node
 				{
 					levels[t - 1].push_back(parent);
+					prune_levels[t - 1].push_back(parent);
 				}
 				parent->children.push_back(node); // add forward edge	
 			}
@@ -411,14 +427,28 @@ bool MDD::buildMDD(const ConstraintTable& ct, int num_of_levels, const SingleAge
 	// }
 
 	// Delete useless nodes (nodes who don't have any children)
-	for (auto it : closed)
-		if (it->children.empty() && it->level < num_of_levels - 1)
-			delete it;
-	closed.clear();
+	// for (auto it : closed)
+	// 	if (it->children.empty() && it->level < num_of_levels - 1)
+	// 		delete it;
+	// closed.clear();
 
 	//test
 	//mergeLevels();
-
+	for (auto it : closed)
+	{
+		if (it->children.empty() && it->level < num_of_levels - 1)
+		{
+			for (auto parent : it->parents)
+			{
+				// if (parent->children.empty()) // a new node
+				// {
+				// 	prune_levels[it->level - 1].push_back(parent);
+				// }
+				parent->children.push_back(it); // add forward edge	
+			}
+			prune_levels[it->level].push_back(it);
+		}
+	}
 	return true;
 }
 
@@ -517,13 +547,21 @@ void MDD::deleteNode(MDDNode* node)
 
 void MDD::clear()
 {
-	if (levels.empty())
+	// if (levels.empty())
+	// 	return;
+	// for (auto& level : levels)
+	// {
+	// 	for (auto& it : level)
+	// 		delete it;
+	// }
+	if (prune_levels.empty())
 		return;
-	for (auto& level : levels)
+	for (auto& level : prune_levels)
 	{
 		for (auto& it : level)
 			delete it;
 	}
+	prune_levels.clear();
 	levels.clear();
 }
 
@@ -551,6 +589,15 @@ MDDNode* MDD::find(int location, int direction, int level) const
 {
 	if (level < (int) levels.size())
 		for (auto it : levels[level])
+			if (it->location == location && it->direction == direction)
+				return it;
+	return nullptr;
+}
+
+MDDNode* MDD::findInPruneLevel(int location, int direction, int level) const
+{
+	if (level < (int) prune_levels.size())
+		for (auto it : prune_levels[level])
 			if (it->location == location && it->direction == direction)
 				return it;
 	return nullptr;
@@ -586,6 +633,37 @@ MDD::MDD(const MDD& cpy) // deep copy
 		}
 
 	}
+
+	prune_levels.resize(cpy.prune_levels.size());
+	auto prune_root = new MDDNode(cpy.prune_levels[0].front()->location, nullptr);
+  	prune_root->cost = cpy.prune_levels.size() - 1;
+	prune_levels[0].push_back(prune_root);
+	//levels[0].insert(root->location,root)
+	for (size_t t = 0; t < prune_levels.size() - 1; t++)
+	{
+		for (auto node = prune_levels[t].begin(); node != prune_levels[t].end(); ++node)
+		{
+			MDDNode* cpyNode = cpy.findInPruneLevel((*node)->location, (*node)->direction, (*node)->level);
+			for (list<MDDNode*>::const_iterator cpyChild = cpyNode->children.begin(); cpyChild != cpyNode->children.end(); ++cpyChild)
+			{
+				MDDNode* child = findInPruneLevel((*cpyChild)->location,(*cpyChild)->direction, (*cpyChild)->level);
+				if (child == nullptr)
+				{
+					child = new MDDNode((*cpyChild)->location, (*cpyChild)->direction, (*node));
+					child->cost = (*cpyChild)->cost;
+					prune_levels[child->level].push_back(child);
+					(*node)->children.push_back(child);
+				}
+				else
+				{
+					child->parents.push_back(*node);
+					(*node)->children.push_back(child);
+				}
+			}
+		}
+
+	}
+
 	solver = cpy.solver;
 }
 
@@ -646,9 +724,9 @@ void MDD::increaseBy(const ConstraintTable&ct, int dLevel, SingleAgentSolver* _s
 
 				if (solver->my_heuristic[next_location*4+next_direction] <= heuristicBound &&
 					!ct.constrained(next_location, it->level + 1) &&
-					!ct.constrained(it->location, next_location, it->level + 1)
+					!ct.constrained(it->location, next_location, it->level + 1))
 					//add direct constraint
-					&& !ct.vertex_direct_constrained(next_location,next_direction,it->level+1)) // valid move
+					//&& !ct.vertex_direct_constrained(next_location,next_direction,it->level+1)) // valid move
 				{
 					if (node_map.find(next_location*4 + next_direction) == node_map.end())
 					{
@@ -749,6 +827,15 @@ std::ostream& operator<<(std::ostream& os, const MDD& mdd)
 	return os;
 }
 
+MDDNode* SyncMDD::findInPruneLevel(int location, int direction, int level) const
+{
+	if (level < (int) prune_levels.size())
+		for (auto it : prune_levels[level])
+			if (it->location == location && it->direction == direction)
+				return it;
+	return nullptr;
+}
+
 
 SyncMDD::SyncMDD(const MDD& cpy) // deep copy of a MDD
 {
@@ -767,6 +854,36 @@ SyncMDD::SyncMDD(const MDD& cpy) // deep copy of a MDD
 				{
 					child = new SyncMDDNode((*cpyChild)->location, (*cpyChild)->direction, (*node));
 					levels[t + 1].push_back(child);
+					(*node)->children.push_back(child);
+				}
+				else
+				{
+					child->parents.push_back(*node);
+					(*node)->children.push_back(child);
+				}
+			}
+		}
+
+	}
+
+	prune_levels.resize(cpy.prune_levels.size());
+	auto prune_root = new MDDNode(cpy.prune_levels[0].front()->location, nullptr);
+  	prune_root->cost = cpy.prune_levels.size() - 1;
+	prune_levels[0].push_back(prune_root);
+	//levels[0].insert(root->location,root)
+	for (size_t t = 0; t < prune_levels.size() - 1; t++)
+	{
+		for (auto node = prune_levels[t].begin(); node != prune_levels[t].end(); ++node)
+		{
+			MDDNode* cpyNode = cpy.findInPruneLevel((*node)->location, (*node)->direction, (*node)->level);
+			for (list<MDDNode*>::const_iterator cpyChild = cpyNode->children.begin(); cpyChild != cpyNode->children.end(); ++cpyChild)
+			{
+				MDDNode* child = findInPruneLevel((*cpyChild)->location,(*cpyChild)->direction, (*cpyChild)->level);
+				if (child == nullptr)
+				{
+					child = new MDDNode((*cpyChild)->location, (*cpyChild)->direction, (*node));
+					child->cost = (*cpyChild)->cost;
+					prune_levels[child->level].push_back(child);
 					(*node)->children.push_back(child);
 				}
 				else
@@ -842,7 +959,14 @@ MDD* MDDTable::getMDD(CBSNode& node, int id, size_t mdd_levels) //mdd_levels is 
 	if (got != lookupTable[c.a].end())//find mdd for the same agent, same constraint and same cost
 	{
 		assert(got->second->levels.size() == mdd_levels);
-		return got->second;
+		if (got->second->levels.size() == mdd_levels)
+			return got->second;
+		else
+		{
+			cout<<"error"<<std::endl;
+			cout<<*(got->first.n)<<" "<<node<<std::endl;
+			got->second->printNodes();
+		}
 	}
 	releaseMDDMemory(id);
 
@@ -871,21 +995,22 @@ double MDDTable::getAverageWidth(CBSNode& node, int agent, size_t mdd_levels)
 void MDDTable::findSingletons(CBSNode& node, int agent, Path& path)
 {
 	auto mdd = getMDD(node, agent, path.size());
-	// std::cout<<"mdd for agent "<<agent<<" "<<std::endl;
-	// mdd->printNodes();
-	// std::cout<<"merged mdd for agent "<<agent<<" "<<std::endl;
-	// mdd->printMergedNodes();
 	for (size_t i = 0; i < mdd->levels.size(); i++)
 	{
+		
+		int count = 0;
 		unordered_set<int> loc; 
 		for (auto mdd: mdd->levels[i])
 		{
 			if (loc.find(mdd->location) == loc.end())
 			{
 				loc.emplace(mdd->location);
+				count++;
 			}
 		}
-		path[i].mdd_width = loc.size();
+		path[i].mdd_width = count;
+		//path[i].mdd_width = mdd->levels.size();
+		path[i].mdd_raw_width = mdd->levels.size();
 	}
 		
 	if (lookupTable.empty())
@@ -972,6 +1097,19 @@ unordered_map<int, MDDNode*> collectRawMDDlevel(MDD* mdd, int i)
 	return loc2mdd;
 }
 
+unordered_map<int, MDDNode*> collectMDDlevel(MDD* mdd, int i)
+{
+	unordered_map<int, MDDNode*> loc2mdd;
+	for (MDDNode* it_0 : mdd->levels[i])
+	{
+		//loc2mdd.push_back(it_0);
+		int loc = it_0->location;
+		int dir = it_0->direction;
+		loc2mdd[loc*4+dir] = it_0;
+	}
+	return loc2mdd;
+}
+
 // unordered_map<int, MDDNode*> collectMDDleveltoList(MDD* mdd, int i)
 // {
 // 	//std::vector<MDDNode*> loc2mdd;
@@ -986,16 +1124,16 @@ unordered_map<int, MDDNode*> collectRawMDDlevel(MDD* mdd, int i)
 // 	return loc2mdd;
 // }
 
-unordered_map<int, list<MDDNode*>> collectMDDlevel(MDD* mdd, int i)
-{
-	unordered_map<int, list<MDDNode*>> loc2mdd;
-	for (MDDNode* it_0 : mdd->levels[i])
-	{
-		int loc = it_0->location;
-		loc2mdd[loc].push_back(it_0);
-	}
-	return loc2mdd;
-}
+// unordered_map<int, list<MDDNode*>> collectMDDlevel(MDD* mdd, int i)
+// {
+// 	unordered_map<int, list<MDDNode*>> loc2mdd;
+// 	for (MDDNode* it_0 : mdd->levels[i])
+// 	{
+// 		int loc = it_0->location;
+// 		loc2mdd[loc].push_back(it_0);
+// 	}
+// 	return loc2mdd;
+// }
 
 // void MDD::mergeLevels()
 // {
